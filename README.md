@@ -1,8 +1,27 @@
-# Sakwa
+# Sakwa - Notes
 
-A shepherd's satchel for notes in [Herdr](https://herdr.dev).
-One note for a **tab**, one for a **space**, and one **global** note.
-Native GPUI, automatic saving, recovery snapshots, and a scoped **Send to agent**.
+Keep a note beside your work in [Herdr](https://herdr.dev). Sakwa saves as you type, with a note for each tab, each space, and one for everything else.
+
+![Sakwa: notes beside your work](preview.png)
+
+Sakwa is a shepherd's satchel: a place for the small things you want close at hand.
+It belongs to the same flock as [Juhas](https://github.com/rgonek/Juhas), for code
+review, and [Kolczyk](https://github.com/rgonek/Kolczyk), for space icons.
+
+## A place to pick up later
+
+Jot down the next step, leave yourself a reminder, or gather instructions for
+your agent. Keep a checklist by the terminal, open a note in its own tab, or split it beside
+your work. Detached notes stay on their original context while you move around.
+All notes lets you find something you wrote in a tab or space you've since closed.
+
+![Find notes from closed tabs and spaces](docs/images/all-notes.png)
+
+When a note is ready for your agent, use Send to agent. Sakwa finds live agents
+in that note's context and lets you choose when there's more than one. Sending
+keeps the note, so you can come back to it.
+
+![Native Sakwa editor with an example note](docs/images/note.png)
 
 ## Install
 
@@ -163,5 +182,7 @@ native-view lifecycle through host stubs, and installation in temporary folders.
 CI runs the Node suite on Windows, macOS and Linux. Native layout, keyboard and
 popover checks still require Herdr on each platform; see [acceptance](docs/acceptance.md).
 
-MIT licensed. Icons (including the backpack mark) are from [Lucide](https://lucide.dev),
-with notices bundled in `mods/sakwa/icons/LICENSE-Lucide.txt`.
+Licensed under [Apache 2.0](LICENSE). See [NOTICE](NOTICE) and
+[third-party notices](THIRD_PARTY_NOTICES.md). Icons, including the backpack mark,
+are from [Lucide](https://lucide.dev), with their original notices bundled in
+`mods/sakwa/icons/LICENSE-Lucide.txt`.

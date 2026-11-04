@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "description": "Native notes for Herdr: tab, space and global",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "scripts": { "test": "node --test", "install-mod": "node scripts/install.mjs" },
   "engines": { "node": ">=22.15" }
 }

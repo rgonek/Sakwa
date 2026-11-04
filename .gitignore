@@ -1,6 +1,10 @@
 node_modules/
 .superpowers/
 *.png
+!preview.png
+!docs/images/*.png
+!docs/images/previews/*.png
+.tmp/
 *.log
 # Herdr generates these files during native checks and loading.
 mods/*/gpui-kit.d.ts
