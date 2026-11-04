@@ -55,7 +55,7 @@ splits use Herdr's own pane management, so personal layouts remain in control.
   Contexts are marked **active**, **archived**, or **unavailable** (for a disconnected
   or still-loading machine). Opening an archived note pins it for editing.
 
-The context selector uses native `ToggleGroup` / `Toggle` controls with subtle
+The context selector uses native `RadioGroup` / `Radio` controls styled as buttons with subtle
 theme selection colors. The sidebar has a native rounded frame. Editors opened
 as tabs or split panes are flat and use Herdr's pane frame, without the Sakwa
 header or Open action. The sidebar header's Open icon offers New tab, Beside,

@@ -18,7 +18,7 @@ export function element(type) {
 }
 export const div=()=>element('div'),svg=()=>element('svg'),v_flex=()=>element('column'),h_flex=()=>element('row');
 export const Button={new:id=>element('button').id(id)},Popover={new:id=>element('popover').id(id)};
-export const ToggleGroup={new:id=>element('toggle-group').id(id)},Toggle={new:id=>element('toggle').id(id)};
+export const RadioGroup={new:id=>element('radio-group').id(id)},Radio={new:id=>element('radio').id(id)};
 function input(options={}) {
   let value=options.value||'';const handlers={};
   return {value:()=>value,on:(name,fn)=>{handlers[name]=fn;},

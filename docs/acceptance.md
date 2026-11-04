@@ -45,7 +45,7 @@ remains unverified.
 
 ## Context selector / panel corrections
 
-- Context uses a native ToggleGroup with exactly one pressed scope, including
+- Context uses a native RadioGroup styled as buttons with exactly one checked scope, including
   pinned notes; the separate context label was removed.
 - The sidebar has the same 10px radius and theme border as Files/Changes;
   native tabs/panes use a flat mod surface.
