@@ -16,7 +16,13 @@ test('sending revalidates recipient and sends whole text without clearing',async
   await assert.rejects(sendNote(context,'hello','gone',live,terminals,transport),/available/i);
   assert.equal(sent.length,0);
   await sendNote(context,'🐑\nall the text','t7',live,terminals,transport);
-  assert.deepEqual(sent[0],['send','t7','🐑\nall the text','--json']);
+  assert.deepEqual(sent[0],['send','--json','--','t7','🐑\nall the text']);
   await assert.rejects(sendNote(context,'x'.repeat(16001),'t7',live,terminals,transport),/limit/i);
   assert.equal(sent.length,1);
+});
+test('note text beginning with flags is passed literally after option terminator',async()=>{
+  const args=[];
+  await sendNote(context,'--help','t7',[{address:'t7',space:'s1',tab:'t1',app:'codex'}],
+    [{address:'t7',state:'live'}],async a=>{args.push(...a);return {code:0};});
+  assert.deepEqual(args,['send','--json','--','t7','--help']);
 });

@@ -57,6 +57,6 @@ test('scoped send uses picker for multiple agents and retains note after send',a
   view.editor.set_value('A full note');view.sendClick(cx);
   assert.equal(view.panel,'recipients');assert.equal(state.sent.length,0);
   view.send('t8',cx);await until(()=>!view.busy);
-  assert.equal(state.sent[0][1],'t8');assert.equal(state.sent[0][2],'A full note');
+  assert.equal(state.sent[0][3],'t8');assert.equal(state.sent[0][4],'A full note');
   assert.equal(view.editor.value(),'A full note');
 });

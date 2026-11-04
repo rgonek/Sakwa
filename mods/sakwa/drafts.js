@@ -21,12 +21,15 @@ export function createDraftBook(journal,storage) {
     pending: ()=>queue.slice(),
     get(key) { return queue.filter(r=>r.key === key).at(-1); },
     status(key) { return queue.some(r=>r.key === key) ? error ? 'error' : 'saving' : 'saved'; },
-    edit(context,text,parents) {
+    edit(context,text,parents,{resolve=false}={}) {
       let record = journal.revision(context,text,parents);
       const last = queue.findLastIndex(r=>r.key === record.key);
       if (last >= 0) {
         const previous = queue[last];
-        if (previous !== active) {
+        if(resolve) {
+          // Explicit history selection keeps unsaved text as a recoverable ancestor.
+          record = {...record,parents:[...new Set([...parents,previous.id])]};
+        } else if (previous !== active) {
           record = {...record,parents:previous.parents};
           queue.splice(last,1);
         } else record = {...record,parents:[previous.id]};

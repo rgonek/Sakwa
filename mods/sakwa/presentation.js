@@ -25,6 +25,6 @@ export async function sendNote(context,text,address,agents,terminals,transport) 
   if (!text.trim()) throw Error('The note is empty');
   if (!recipients(context,agents,terminals).some(a=>a.address === address)) throw Error('This agent is no longer available in the note context');
   if (utf8Length(text)>16000) throw Error('Note exceeds the 16000-byte send limit. Nothing was sent; copy the note instead.');
-  const result = await transport(['send',address,text,'--json']);
+  const result = await transport(['send','--json','--',address,text]);
   if (result.code !== 0) throw Error(`Delivery not confirmed: ${result.stderr || result.stdout || 'transport failed'}. Inspect the agent before retrying.`);
 }

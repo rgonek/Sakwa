@@ -55,3 +55,23 @@ test('local recovery write errors keep the text queued for retry',async()=>{
   await s.book.flush();assert.equal(s.journal.notes()[0].text,'still here');
   s.storage.setItem=write;
 });
+test('explicit restore preserves queued draft and resolves all concurrent heads',async()=>{
+  const s=setup();
+  const a=await s.journal.append(global,'left',[]),b=await s.journal.append(global,'right',[]);
+  s.book.edit(global,'pending precious text',[a.id]);
+  s.book.edit(global,b.text,[a.id,b.id],{resolve:true});
+  await s.book.flush();
+  const note=s.journal.notes()[0];
+  assert.equal(note.heads.length,1);assert.equal(note.text,'right');
+  assert.equal(s.journal.history(note.key).some(r=>r.text==='pending precious text'),true);
+});
+test('explicit restore during an active write retains all merge parents',async()=>{
+  const s=setup();
+  const a=await s.journal.append(global,'left',[]),b=await s.journal.append(global,'right',[]);
+  let release,started;const began=new Promise(r=>{started=r;});
+  s.io.create=async(n,v)=>{started();await new Promise(r=>{release=r;});s.files.set(n,v);};
+  s.book.edit(global,'pending',[a.id]);const flushing=s.book.flush();await began;
+  s.book.edit(global,b.text,[a.id,b.id],{resolve:true});
+  s.io.create=async(n,v)=>s.files.set(n,v);release();await flushing;
+  assert.equal(s.journal.notes()[0].heads.length,1);
+});
