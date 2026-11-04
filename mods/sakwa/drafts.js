@@ -1,7 +1,7 @@
 import { validRevision } from './journal.js';
 const STORAGE_KEY = 'sakwa.pending.v1';
 
-export function createDraftBook(journal,storage) {
+export function createDraftBook(journal,storage,backup=()=>{}) {
   let queue = [], active = null, flushing = null, error = null, recoveryError = null;
   const raw = storage.getItem(STORAGE_KEY);
   if (raw) {
@@ -12,14 +12,25 @@ export function createDraftBook(journal,storage) {
     } catch { throw Error('Cannot read recovery drafts; original storage preserved. Export it before repairing.'); }
   }
   function persist() {
+    const problems=[];
     try { storage.setItem(STORAGE_KEY,JSON.stringify({schema:1,records:queue})); recoveryError = null; }
-    catch (e) { recoveryError = e.message; }
+    catch (e) { problems.push(e.message); }
+    try { backup(queue.slice()); } catch(e) { problems.push(e.message); }
+    recoveryError=problems.length?problems.join('; '):null;
   }
   const book = {
     get error() { return error; },
     get recoveryError() { return recoveryError; },
     pending: ()=>queue.slice(),
     get(key) { return queue.filter(r=>r.key === key).at(-1); },
+    recover(records) {
+      if(!Array.isArray(records)||!records.every(validRevision))throw Error('Invalid recovery records; original preserved');
+      const known=new Set(queue.map(r=>r.id));let changed=false;
+      for(const record of records)if(!known.has(record.id)&&!journal.has(record.id)) {
+        queue.push(record);known.add(record.id);changed=true;
+      }
+      if(changed)persist();
+    },
     status(key) { return queue.some(r=>r.key === key) ? error ? 'error' : 'saving' : 'saved'; },
     edit(context,text,parents,{resolve=false}={}) {
       let record = journal.revision(context,text,parents);

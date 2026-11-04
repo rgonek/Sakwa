@@ -12,6 +12,8 @@ test('installer copies runtime only and preserves layout and note data',t=>{
   const result=install({appHome:root});
   assert.equal(readFileSync(join(result.mod,'mod.json'),'utf8').includes('Sakwa'),true);
   assert.equal(existsSync(join(result.mod,'gpui-kit.d.ts')),false);
+  assert.match(readFileSync(join(result.mod,'icons','send.svg'),'utf8'),/<svg/);
+  assert.match(readFileSync(join(result.mod,'icons','LICENSE-Lucide.txt'),'utf8'),/Lucide/);
   assert.equal(readFileSync(join(root,'layouts','mine.json'),'utf8'),'personal');
   assert.equal(readFileSync(join(root,'data','sakwa','precious.json'),'utf8'),'notes');
 });

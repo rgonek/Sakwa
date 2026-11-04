@@ -32,6 +32,12 @@ data and personal layouts. Herdr controls docking after the first discovery.
 No dependencies to download. Manual installation: copy `mods/sakwa` into the
 Herdr app's `mods` folder, excluding generated `.d.ts` and `jsconfig.json` files.
 
+The interface uses Herdr's native `Button`, `Popover`, `Input` and `Textarea`
+components and theme colors, with bundled Lucide icons. There are no layout node
+IDs, theme-specific colors, or custom layouts to maintain. Controls wrap in narrow
+panels; compact icon buttons keep tooltips and accessible labels. New tabs and
+splits use Herdr's own pane management, so personal layouts remain in control.
+
 ## Use
 
 - **Tab / Space / Global** selects the single note for that context. The sidebar
@@ -72,10 +78,14 @@ the latest text; already-written snapshots are never pruned automatically.
 Renaming a tab or space keeps its note. Closing a context never deletes notes.
 
 Drafts waiting for a file write are also stored in the editor copy's Herdr
-`localStorage`, flushed before saving. Keep an editor open until **Saved** when
-storage errors occur. Recovery depends on Herdr restoring that copy's storage;
-the shared revision directory remains available regardless of pane removal.
-Back up the **whole Herdr app home** to include recovery storage and history.
+`localStorage`, flushed before saving, and in Herdr shared state independently
+of that copy. Another Sakwa copy can recover pending drafts after the original
+pane or tab is removed. Recovery retries at startup and during the ten-second
+refresh; successful immutable revisions remove the corresponding shared draft.
+Recovery favors retaining text and may preserve intermediate versions from
+another editor that is still open.
+Keep an editor open until **Saved** when storage errors occur. Back up the
+**whole Herdr app home** to include both recovery stores and history.
 
 Concurrent windows write separate revisions. Neither overwrites the other's
 text. A warning points to History when multiple current versions exist. A focused
@@ -115,4 +125,5 @@ native-view lifecycle through host stubs, and installation in temporary folders.
 CI runs the Node suite on Windows, macOS and Linux. Native layout, keyboard and
 popover checks still require Herdr on each platform; see [acceptance](docs/acceptance.md).
 
-MIT licensed. The satchel icon is original to Sakwa.
+MIT licensed. Icons (including the backpack mark) are from [Lucide](https://lucide.dev),
+with notices bundled in `mods/sakwa/icons/LICENSE-Lucide.txt`.

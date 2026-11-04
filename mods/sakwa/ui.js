@@ -1,16 +1,18 @@
-import { div } from 'gpui-kit';
+import { div, svg } from 'gpui-kit';
 import { Button, Popover, h_flex, v_flex } from 'gpui-base';
 import { theme } from 'herdr';
 
 export function text(value,muted=false) {
   return div().text_size(12).text_color(muted?theme().muted:theme().foreground).child(value);
 }
-export function button(id,label,action,{active=false,disabled=false,tooltip=label}={}) {
+export function button(id,label,action,{active=false,disabled=false,tooltip=label,icon=null,iconOnly=false}={}) {
   const t=theme();
-  return Button.new(id).h(28).px(8).flex_none().rounded(6).text_size(12)
+  return Button.new(id).h(28).px(8).flex_none().min_w(0).max_w('100%').flex().gap(5).items_center().justify_center().rounded(6).text_size(12)
     .bg(active?t.selected:t.chrome).text_color(disabled?t.dim:t.foreground)
     .hover(e=>e.bg(t.hover)).disabled(disabled).tab_index(0).accessibility_label(label)
-    .tooltip(tooltip).when(Boolean(action),e=>e.on_click(action)).child(label);
+    .tooltip(tooltip).when(Boolean(action),e=>e.on_click(action))
+    .when(Boolean(icon),e=>e.child(svg(`mods/sakwa/icons/${icon}.svg`).size(14).flex_none()))
+    .when(!iconOnly,e=>e.child(div().min_w(0).truncate().child(label)));
 }
 export function popover(id,label,open,change,content,options={}) {
   const t=theme();

@@ -17,6 +17,7 @@ export function createJournal(io) {
   let loading;
   const journal = {
     errors: [],
+    has: id=>records.has(id),
     async load() {
       if (loading) return loading;
       loading = (async()=>{

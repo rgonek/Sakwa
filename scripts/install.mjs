@@ -8,10 +8,11 @@ const repository=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 export function install({appHome,source=repository}) {
   if(!appHome)throw Error('An app home is required');
   const root=resolve(appHome),from=join(source,'mods','sakwa'),mod=join(root,'mods','sakwa');
-  const names=readdirSync(from).filter(n=>n.endsWith('.js')||n.endsWith('.svg')||n==='mod.json');
-  for(const required of ['main.js','mod.json','context.js','journal.js','drafts.js','persistence.js','presentation.js','ui.js','icon.svg']) {
+  const names=readdirSync(from).filter(n=>n.endsWith('.js')||n.endsWith('.svg')||n==='mod.json'||n==='icons');
+  for(const required of ['main.js','mod.json','context.js','journal.js','drafts.js','recovery.js','persistence.js','presentation.js','ui.js','icon.svg']) {
     if(!names.includes(required))throw Error(`Incomplete distribution: missing ${required}`);
   }
+  if(!existsSync(join(from,'icons','LICENSE-Lucide.txt')))throw Error('Incomplete distribution: missing Lucide license');
   if(existsSync(mod) && lstatSync(mod).isSymbolicLink())throw Error('Mod directory is a symbolic link; choose its actual app home');
   let backup=null;
   if(existsSync(mod)) {
@@ -19,7 +20,7 @@ export function install({appHome,source=repository}) {
     backup=join(mkdtempSync(join(backups,'install-')),'sakwa');cpSync(mod,backup,{recursive:true});
   }
   mkdirSync(mod,{recursive:true});
-  for(const name of names)cpSync(join(from,name),join(mod,name));
+  for(const name of names)cpSync(join(from,name),join(mod,name),{recursive:name==='icons'});
   return {mod,backup};
 }
 

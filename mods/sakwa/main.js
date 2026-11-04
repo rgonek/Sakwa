@@ -5,6 +5,7 @@ import { spaces, machines, agents, terminals, focused, panes, theme, props, run,
 import { contextFor, contextKey, contextStatus, validContext, recipients } from './context.js';
 import { createJournal, revisionId } from './journal.js';
 import { createDraftBook } from './drafts.js';
+import { createRecovery } from './recovery.js';
 import { fileAdapter } from './persistence.js';
 import { openNote, sendNote } from './presentation.js';
 import { text, button, popover, row } from './ui.js';
@@ -14,6 +15,7 @@ export default class Sakwa extends View {
     this.scope='tab';this.pinned=validContext(initial?.context)?initial.context:null;
     this.current=null;this.baseIds=[];this.loaded=false;this.busy=false;this.panel=null;
     this.journal=createJournal(fileAdapter());
+    this.recovery=createRecovery(()=>shared('sakwa.recovery.v1'),value=>setShared('sakwa.recovery.v1',value),revisionId(),id=>this.journal.has(id));
     this.editor=TextareaState.new({placeholder:'Write a note…',rows:12});
     this.query=InputState.new({placeholder:'Find a note…'});
     this.query.on('change',(_e,cx)=>cx.notify());
@@ -27,7 +29,7 @@ export default class Sakwa extends View {
       this.baseIds=[record.id];this.displayedText=value;this.preview=null;
       this.save(cx);cx.notify();
     });
-    try { this.book=createDraftBook(this.journal,localStorage); }
+    try { this.book=createDraftBook(this.journal,localStorage,records=>this.recovery.save(records)); }
     catch(e) { this.fatal=e.message; }
     this.refresh(cx);
     // File refresh is for other windows; Herdr live focus/agent data needs no polling.
@@ -86,6 +88,10 @@ export default class Sakwa extends View {
     this.work(cx,async()=>{
       try {
         await this.journal.load();this.loaded=true;this.loadError=null;
+        if(this.book) {
+          try { this.book.recover(this.recovery.load());this.sharedRecoveryError=null; }
+          catch(e) { this.sharedRecoveryError=e.message; }
+        }
         if(this.book?.pending().length)await this.book.flush();
         this.sync();this.generation=shared('sakwa.changed.v1');
       } catch(e) { this.loadError=e.message;throw e; }
@@ -126,7 +132,7 @@ export default class Sakwa extends View {
   restore(revision,cx) {
     if(!this.current || revision.key!==contextKey(this.current))return;
     const heads=this.note(revision.key)?.heads||[];
-    const record=this.book.edit(this.current,revision.text,heads.map(h=>h.id));
+    const record=this.book.edit(this.current,revision.text,heads.map(h=>h.id),{resolve:true});
     this.baseIds=[record.id];this.setText(record.text);this.preview=null;this.panel=null;
     this.save(cx);cx.notify();
   }
@@ -178,16 +184,18 @@ export default class Sakwa extends View {
     const candidates=recipients(this.current,agents(),terminals());
     const problem=this.fatal || this.loadError || this.book?.error;
     const root=v_flex().id('sakwa-root').size_full().min_h(0).min_w(0).p(10).gap(8)
+      .on_size_change((size,cx)=>{if(this.width!==size.width){this.width=size.width;cx.notify();}})
       .bg(t.surface).text_color(t.foreground).text_size(12)
       .child(row().child(svg('mods/sakwa/icon.svg').size(18)).child(text('Sakwa').font_semibold().flex_1())
-        .child(button('all-notes','All notes',(_e,cx)=>{this.panel='all';cx.notify();},{active:this.panel==='all'}))
-        .child(popover('open-note','Open ▾',this.panel==='open',(open,cx)=>{this.panel=open?'open':null;cx.notify();},()=>
-          v_flex().gap(4).children([['tab','New tab'],['right','Beside'],['down','Below']].map(([place,label])=>
-            button(`open-${place}`,label,(_e,cx)=>this.open(place,cx),{disabled:!ready}))))))
+        .child(button('all-notes','All notes',(_e,cx)=>{this.panel='all';cx.notify();},{active:this.panel==='all',icon:'archive',iconOnly:this.width<330}))
+        .child(popover('open-note','Open',this.panel==='open',(open,cx)=>{this.panel=open?'open':null;cx.notify();},()=>
+          v_flex().gap(4).children([['tab','New tab','square-arrow-out-up-right'],['right','Beside','columns-2'],['down','Below','rows-2']].map(([place,label,icon])=>
+            button(`open-${place}`,label,(_e,cx)=>this.open(place,cx),{disabled:!ready,icon}))),{icon:'panel-right',iconOnly:true})))
       .when(Boolean(problem),e=>e.child(text(`Not saved: ${problem}`).text_color(t.ansi1))
         .child(button('retry','Retry',(_e,cx)=>{this.save(cx);this.refresh(cx);})))
       .when(Boolean(this.journal.errors.length),e=>e.child(text(`${this.journal.errors.length} unreadable history file(s) preserved. See data/sakwa/revisions.`,true)))
       .when(Boolean(this.book?.recoveryError),e=>e.child(text(`Recovery cache: ${this.book.recoveryError}. Keep this editor open until Saved.`,true)));
+    if(this.sharedRecoveryError)root.child(text(this.sharedRecoveryError,true));
     if(this.panel==='all')return root.child(this.archive(cx));
     return root
       .child(row().children(['tab','space','global'].map(scope=>button(`scope-${scope}`,scope[0].toUpperCase()+scope.slice(1),
@@ -204,13 +212,13 @@ export default class Sakwa extends View {
           .child(button('copy-version','Copy version',(_e,cx)=>cx.write_to_clipboard(this.preview.text)))
           .child(button('close-preview','Close',(_e,cx)=>{this.preview=null;cx.notify();})))))
       .child(row().child(text(status==='saved'?'Saved':status==='error'?'Save failed — draft retained':status==='saving'?'Saving…':'',true).flex_1())
-        .child(button('copy-note','Copy',(_e,cx)=>cx.write_to_clipboard(this.editor.value()),{disabled:!ready}))
-        .child(popover('history','History ▾',this.panel==='history',(open,cx)=>{this.panel=open?'history':null;cx.notify();},()=>this.history()))
+        .child(button('copy-note','Copy',(_e,cx)=>cx.write_to_clipboard(this.editor.value()),{disabled:!ready,icon:'copy',iconOnly:true}))
+        .child(popover('history','History',this.panel==='history',(open,cx)=>{this.panel=open?'history':null;cx.notify();},()=>this.history(),{icon:'rotate-ccw-clock',iconOnly:true}))
         .child(popover('send','Send to agent',this.panel==='recipients',(open,cx)=>{
           if(open)this.sendClick(cx);else if(this.panel==='recipients'){this.panel=null;cx.notify();}
         },()=>v_flex().gap(4).when(!candidates.length,e=>e.child(text('No live agents in this note context.',true)))
           .children(candidates.map(a=>button(`send-${a.address}`,`${a.name} · ${a.address}`,(_e,cx)=>this.send(a.address,cx),{disabled:this.busy}))),
-        {disabled:!ready||this.busy||!this.editor.value().trim(),tooltip:candidates.length?'Send the full note to an agent':'No live agents in this note context'})))
+        {disabled:!ready||this.busy||!this.editor.value().trim(),icon:'send',iconOnly:this.width<280,tooltip:candidates.length?'Send the full note to an agent':'No live agents in this note context'})))
       .when(Boolean(this.message),e=>e.child(text(this.message,true)));
   }
 }

@@ -18,6 +18,8 @@ the sidebar follows the selected tab/space. All copies share changes.
 ## Persistence
 
 Use app-local files, atomic expected-content writes, and durable recovery versions.
+Pending drafts are also mirrored to Herdr shared state so removing their original
+pane does not make its per-copy recovery cache the only remaining copy.
 Serialize writes per note. Save on each edit; show Saving / Saved / Error honestly.
 Keep pending edits across context switches and retry failures without discarding
 text. Preserve conflicting versions instead of silently overwriting another copy.

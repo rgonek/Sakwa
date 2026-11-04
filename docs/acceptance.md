@@ -2,7 +2,7 @@
 
 ## Automated checks on Windows
 
-- `node --test`: 20 tests passed at distribution stage, Node 24.18.0.
+- `node --test`: 25 tests passed after review fixes, Node 24.18.0.
 - `herdr-app check mods/sakwa`: passed, Herdr app 0.1.12.
 - Installer executed against real app home; mod loaded in the existing personal
   layout, without replacing or switching layouts.
@@ -10,6 +10,16 @@
   selectors, full-height textarea, saved status and action controls.
 - `herdr-app do sakwa.all` accepted; `herdr-app status` reported no errors.
 - Temporary dialog closed after smoke check; sidebar left available for use.
+- Native screenshot inspected again after Lucide integration: icons loaded,
+  textarea filled remaining height, existing layout retained, no app errors.
+- Independent review found history resolution dropping merge parents while a
+  draft was queued or saving; both cases now have passing regression tests.
+- A CLI option-parsing regression test covers notes beginning with `--`.
+- Shared recovery tests recover pending text in a fresh editor after discarding
+  the original editor and its per-copy storage; malformed backups remain intact.
+- Scoped independent review of shared recovery found no important data-loss issue.
+  Recovery of an editor that is still live may preserve extra intermediate
+  versions; this is an intentional preference for retaining text.
 
 Native view tests execute the real controller with host UI stubs and real
 temporary files. They prove routing and persistence lifecycle, not actual
