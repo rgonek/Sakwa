@@ -26,6 +26,7 @@ export const RadioGroup={new:id=>element('radio-group').id(id)},Radio={new:id=>e
 function input(options={}) {
   let value=options.value||'';const handlers={};
   return {value:()=>value,on:(name,fn)=>{handlers[name]=fn;},
+    set_selected_range(range){this.lastRange={...range};},
     set_value:next=>{value=next;handlers.change?.({},globalThis.nativeTest.cx);},
     focus:()=>handlers.focus?.({},globalThis.nativeTest.cx),
     blur:()=>handlers.blur?.({},globalThis.nativeTest.cx)};

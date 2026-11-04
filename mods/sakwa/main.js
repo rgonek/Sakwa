@@ -126,7 +126,9 @@ export default class Sakwa extends View {
     });
   }
   selectScope(scope,cx) {
-    this.pinned=null;this.scope=scope;this.panel=null;this.message=null;this.sync();this.editor.focus();cx.notify();
+    this.pinned=null;this.scope=scope;this.panel=null;this.message=null;this.sync();
+    const end=this.editor.value().length;
+    this.editor.set_selected_range({start:end,end});this.editor.focus();cx.notify();
   }
   work(cx,action,{automatic=false}={}) {
     cx.spawn(async cx=>{

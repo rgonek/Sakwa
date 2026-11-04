@@ -54,6 +54,18 @@ test('selecting a context immediately focuses its note editor, including the act
     assert.equal(view.editing,true,'Context selection must focus the note textarea');
   }
 });
+test('context selection places caret at UTF-16 end of loaded text and clears selection',async t=>{
+  const {view,cx}=await fixture(t);
+  view.editor.set_value('A🐑\nż');await until(()=>!view.book.pending().length);
+  view.selectScope('global',cx);assert.deepEqual(view.editor.lastRange,{start:0,end:0});
+  view.editor.set_value('line 1\nline 2');await until(()=>!view.book.pending().length);
+  view.selectScope('tab',cx);assert.deepEqual(view.editor.lastRange,{start:5,end:5});
+  view.selectScope('global',cx);assert.deepEqual(view.editor.lastRange,{start:13,end:13});
+  view.editor.set_selected_range({start:0,end:4});view.selectScope('global',cx);
+  assert.deepEqual(view.editor.lastRange,{start:13,end:13});
+  view.editor.set_selected_range({start:2,end:2});view.render(cx);
+  assert.deepEqual(view.editor.lastRange,{start:2,end:2});
+});
 test('sidebar frame is flat for native pane or tab copies',async t=>{
   const {view,cx}=await fixture(t);
   assert.equal(Object.hasOwn(view.render(cx).options,'border_1'),true);
