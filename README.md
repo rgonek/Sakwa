@@ -43,9 +43,10 @@ splits use Herdr's own pane management, so personal layouts remain in control.
 - **Tab / Space / Global** is a single context selector; the current scope stays
   highlighted. The sidebar follows your selected tab or space. Global means this
   local Herdr installation. Hover the selector to see the context's name.
-- Type freely: **Saving…** is shown while writing and disappears when the write
-  completes. Status and errors use a fixed-height line, so messages never resize
-  the editor. Errors retain the draft and retry every three seconds.
+- Type freely: autosave runs quietly after each edit. Errors and delivery results
+  use native Herdr toasts outside the note layout, so notifications never resize
+  the editor or reserve empty footer space. Errors retain the draft and retry
+  every three seconds; repeated automatic failures are deduplicated.
 - **Open ▾ → New tab / Beside / Below** opens another editor pinned to the original
   note. Changing tabs does not change a pinned note. The source sidebar hides
   after opening the detached editor.
@@ -92,7 +93,7 @@ open in the current space. Clicking an inactive detached view focuses it. Clicki
 while that note has focus saves pending text, returns to its source tab, restores
 the note in the sidebar and closes the detached view. With no detached view,
 clicking toggles the sidebar. Missing source tabs or sidebars leave the note open
-and report the problem in the fixed status area.
+and report the problem through a native toast.
 
 When several views exist, navigation prefers the focused view, then a view in
 the current tab, then one opened from that tab; remaining ties prefer the most
@@ -120,7 +121,7 @@ pane or tab is removed. Recovery retries at startup and during the ten-second
 refresh; successful immutable revisions remove the corresponding shared draft.
 Recovery favors retaining text and may preserve intermediate versions from
 another editor that is still open.
-Keep an editor open until saving finishes and storage errors clear. Back up the
+Keep an editor open and resolve any storage-error notifications before closing it. Back up the
 **whole Herdr app home** to include both recovery stores and history.
 
 Concurrent windows write separate revisions. Neither overwrites the other's
@@ -138,8 +139,8 @@ and `context` fields. History is unbounded in v0.1; large journals cost disk spa
 and take longer to load. Do not delete revisions unless you have an external backup.
 
 No application can guarantee the last keystroke survives a crash, power failure,
-or forced termination before a write reaches disk. The saving indicator clears
-after completion of Herdr's atomic write API; this is not a guarantee against hardware failure.
+or forced termination before a write reaches disk. Autosave uses Herdr's atomic
+write API; this is not a guarantee against hardware failure.
 Closing cleanup is best-effort and limited by Herdr to 250 ms.
 
 ## Privacy and sending

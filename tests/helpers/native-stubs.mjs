@@ -41,6 +41,7 @@ export const props=()=>globalThis.nativeTest.props||{},run=(...args)=>globalThis
 export const appHome=()=>globalThis.nativeTest.home;
 export const shared=key=>globalThis.nativeTest.shared.get(key);
 export const setShared=(key,value)=>globalThis.nativeTest.shared.set(key,value);
+export const notify=notification=>{(globalThis.nativeTest.notifications??=[]).push(notification);return 'toast';};
 export const nextCommand=()=>new Promise(()=>{});
 export const hc=async args=>{globalThis.nativeTest.sent.push(args);return {code:0};};
 export async function writeTextFile(path,text,expected) {

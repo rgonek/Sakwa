@@ -68,8 +68,8 @@ remains unverified.
   title and bottom divider, without a title icon.
 - Copy and persistent Saved label removed. All notes and Send to agent share the
   top toolbar, with labels only when enough width is available.
-- Save, delivery and error messages share a reserved 24px single-line status area;
-  long details are exposed through a tooltip and never change the editor height.
+- Save/delivery status originally used a reserved 24px line; this was replaced
+  by native toasts below to remove the unwanted empty footer space.
 - 30 Node tests pass, including sidebar handoff, responsive labels and fixed status geometry.
 - Native smoke verified sidebar hiding after New tab and Beside; screenshots
   confirmed labels in wide views and icons in the narrow sidebar. Original pane
@@ -95,3 +95,16 @@ remains unverified.
 - Source note contents remained intact through all native navigation checks.
 - Scoped independent review found no actionable issue; native acceptance exposed
   the missing automatic pane prop and its regression test now covers this case.
+
+## Native notifications without footer space
+
+- Removed the status footer entirely; the textarea reaches the bottom inset.
+- Native Herdr `notify()` handles errors, warnings and delivery confirmations.
+  Routine autosave is silent. Automatic duplicate errors are suppressed.
+- 43 tests pass, including native-notification payloads and unchanged editor
+  geometry with or without messages. Native screenshot confirms no empty footer;
+  Herdr reports no mod errors.
+- A native preview toast was shown and visually verified at the bottom-right;
+  the installed code was restored without the preview instrumentation.
+- Regression test confirms a failed autosave followed by repeated periodic
+  refreshes retains the draft and emits only one error toast.

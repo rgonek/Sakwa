@@ -1,7 +1,7 @@
 import { View } from 'gpui-kit';
 import { h_flex, v_flex, TextareaState, Textarea, InputState, Input } from 'gpui-base';
 import { spaces, machines, agents, terminals, focused, panes, theme, props, layout, run,
-  hc, shared, setShared, nextCommand } from 'herdr';
+  hc, shared, setShared, nextCommand, notify } from 'herdr';
 import { contextFor, contextKey, contextStatus, validContext, recipients } from './context.js';
 import { createJournal, revisionId } from './journal.js';
 import { createDraftBook } from './drafts.js';
@@ -15,6 +15,7 @@ export default class Sakwa extends View {
   init(initial,cx) {
     initial={...initial,...props()};
     this.contextProps=initial;this.viewId=revisionId();this.openedAt=Date.now();
+    this.seenNotices=new Set();
     this.framed=initial?.role==='sidebar'||initial?.role!=='pane'&&!initial?.pane&&!initial?.overlay;
     this.scope='tab';this.pinned=validContext(initial?.context)?initial.context:null;
     this.current=null;this.baseIds=[];this.loaded=false;this.busy=false;this.panel=null;
@@ -34,7 +35,7 @@ export default class Sakwa extends View {
       this.save(cx);cx.notify();
     });
     try { this.book=createDraftBook(this.journal,localStorage,records=>this.recovery.save(records)); }
-    catch(e) { this.fatal=e.message; }
+    catch(e) { this.fatal=e.message;this.notice(e.message,'error',true); }
     this.refresh(cx);
     // File refresh is for other windows; Herdr live focus/agent data needs no polling.
     cx.timer.every(10000,cx=>this.refresh(cx));
@@ -75,6 +76,19 @@ export default class Sakwa extends View {
     }
     this.current=next;
     this.publishView();
+    this.reportWarnings();
+  }
+  notice(body,level='error',deduplicate=false) {
+    const key=`${level}:${body}`;
+    if(deduplicate&&this.seenNotices.has(key))return;
+    if(deduplicate)this.seenNotices.add(key);
+    notify({title:'Sakwa',body,level});
+  }
+  reportWarnings() {
+    for(const warning of [this.sharedRecoveryError,this.book?.recoveryError].filter(Boolean))this.notice(warning,'warning',true);
+    if(this.journal.errors.length)this.notice(`${this.journal.errors.length} unreadable recovery files preserved in data/sakwa/revisions.`,'warning',true);
+    const note=this.current?this.note(contextKey(this.current)):null;
+    if(note?.heads.length>1)this.notice(`${note.heads.length} concurrent versions of ${this.current.label} preserved in recovery files.`,'warning',true);
   }
   publishView() {
     if(this.framed||!this.current||this.contextProps.overlay)return;
@@ -114,10 +128,10 @@ export default class Sakwa extends View {
   selectScope(scope,cx) {
     this.pinned=null;this.scope=scope;this.panel=null;this.message=null;this.sync();cx.notify();
   }
-  work(cx,action) {
+  work(cx,action,{automatic=false}={}) {
     cx.spawn(async cx=>{
       try { await action(); }
-      catch(e) { this.message=e.message; }
+      catch(e) { this.message=e.message;this.notice(e.message,'error',automatic); }
       cx.notify();
     });
   }
@@ -125,25 +139,31 @@ export default class Sakwa extends View {
     if(!this.book || this.saving)return;
     this.saving=true;
     this.work(cx,async()=>{
-      try { await this.book.flush();setShared('sakwa.changed.v1',revisionId()); }
+      try {
+        const previousError=this.book.error;await this.book.flush();
+        if(previousError)this.seenNotices.delete(`error:${previousError}`);
+        setShared('sakwa.changed.v1',revisionId());
+      }
       finally { this.saving=false;this.sync(); }
-    });
+    },{automatic:true});
   }
   refresh(cx) {
     if(this.refreshing)return;
     this.refreshing=true;
     this.work(cx,async()=>{
       try {
-        await this.journal.load();this.loaded=true;this.loadError=null;
+        const previousError=this.loadError;await this.journal.load();this.loaded=true;
         if(this.book) {
           try { this.book.recover(this.recovery.load());this.sharedRecoveryError=null; }
           catch(e) { this.sharedRecoveryError=e.message; }
         }
         if(this.book?.pending().length)await this.book.flush();
+        this.loadError=null;
+        if(previousError)this.seenNotices.delete(`error:${previousError}`);
         this.sync();this.generation=shared('sakwa.changed.v1');
       } catch(e) { this.loadError=e.message;throw e; }
       finally { this.refreshing=false; }
-    });
+    },{automatic:true});
   }
   chooseNote(note,cx) {
     this.pinned=note.context;this.panel=null;this.message=null;this.sync();cx.notify();
@@ -155,7 +175,7 @@ export default class Sakwa extends View {
   }
   open(place,cx) {
     try { openNote(run,place,this.current,focused(),panes(),this.framed?layout():null);this.panel=null; }
-    catch(e) { this.message=e.message; }
+    catch(e) { this.message=e.message;this.notice(e.message); }
     cx.notify();
   }
   send(address,cx) {
@@ -168,6 +188,7 @@ export default class Sakwa extends View {
         await this.book.flush();
         await sendNote(context,value,address,agents(),terminals(),hc);
         this.message=`Sent to ${address}`;
+        this.notice(this.message,'success');
       } finally { this.busy=false; }
     });
   }
@@ -214,14 +235,7 @@ export default class Sakwa extends View {
     }
     const t=theme(),currentKey=this.current?contextKey(this.current):null;
     const ready=this.loaded && !this.fatal && key===currentKey && Boolean(this.current);
-    const note=currentKey?this.note(currentKey):null;
-    const status=currentKey?this.book?.status(currentKey):null;
     const candidates=recipients(this.current,agents(),terminals());
-    const problem=this.fatal || this.loadError || this.book?.error;
-    const details=[problem,this.sharedRecoveryError,this.book?.recoveryError,
-      ...this.journal.errors,this.message,note?.heads.length>1?`${note.heads.length} concurrent versions preserved in recovery files.`:null].filter(Boolean);
-    const statusText=problem?'Save failed — draft retained':this.message||
-      (!this.loaded?'Loading notes…':status==='saving'?'Saving…':details[0]||'');
     const labels=(this.width||0)>=460;
     const frame=v_flex().id('sakwa-root').size_full().min_h(0).min_w(0)
       .on_size_change((size,cx)=>{if(this.width!==size.width){this.width=size.width;cx.notify();}})
@@ -244,13 +258,9 @@ export default class Sakwa extends View {
         },()=>v_flex().gap(4).when(!candidates.length,e=>e.child(text('No live agents in this note context.',true)))
           .children(candidates.map(a=>button(`send-${a.address}`,`${a.name} · ${a.address}`,(_e,cx)=>this.send(a.address,cx),{disabled:this.busy}))),
         {disabled:!ready||this.busy||!this.editor.value().trim(),icon:'send',iconOnly:!labels,tooltip:candidates.length?'Send the full note to an agent':'No live agents in this note context'})))
-      .child(v_flex().flex_1().min_h(0).min_w(0)
+      .child(v_flex().id('note-editor').flex_1().min_h(0).min_w(0)
         .when(ready,e=>e.child(Textarea.new(this.editor).size_full().min_h(0).min_w(0)
-          .px(12).py(10).rounded(8).border_1().border_color(t.border).bg(t.background).text_color(t.foreground).text_size(13))))
-      .child(h_flex().id('note-status').h(24).flex_none().min_w(0).gap(4).items_center().overflow_hidden()
-        .child(text(statusText,true).flex_1().min_w(0).truncate().tooltip(details.join('\n')||statusText)
-          .when(Boolean(problem),e=>e.text_color(t.ansi1)))
-        .when(Boolean(problem),e=>e.child(button('retry','Retry',(_e,cx)=>{this.save(cx);this.refresh(cx);}).h(22))));
+          .px(12).py(10).rounded(8).border_1().border_color(t.border).bg(t.background).text_color(t.foreground).text_size(13))));
     return frame.child(root);
   }
 }

@@ -66,8 +66,8 @@ test('Open popover has measurable height and its items dispatch native placement
   assert.deepEqual(state.commands.map(c=>c[0]),['tab.new','pane.split','pane.split']);
   assert.ok(state.commands.every(c=>c[1].props.role==='pane'));
 });
-test('top actions adapt labels to width and messages use a fixed status area',async t=>{
-  const {view,cx}=await fixture(t);
+test('top actions adapt labels and toast messages reserve no space in the editor layout',async t=>{
+  const {view,state,cx}=await fixture(t);
   for(const [width,labels] of [[280,false],[700,true]]){
     view.width=width;let tree=nodes(view.render(cx));
     const tools=nodes(tree.find(n=>n.options.id==='scope-tools'));
@@ -76,12 +76,33 @@ test('top actions adapt labels to width and messages use a fixed status area',as
     assert.equal(nodes(all).some(n=>n.nodes.includes('All notes')),labels);
     assert.equal(nodes(send.options.trigger).some(n=>n.nodes.includes('Send to agent')),labels);
     assert.equal(tree.some(n=>n.options.id==='copy-note'),false);
-    const footer=tree.find(n=>n.options.id==='note-status');assert.equal(footer.options.h,24);
+    assert.equal(tree.some(n=>n.options.id==='note-status'),false);
+    const editor=tree.find(n=>n.options.id==='note-editor');assert.ok(editor);
     assert.equal(tree.some(n=>n.nodes.includes('Saved')),false);
-    view.message='A very long transport error';
-    tree=nodes(view.render(cx));assert.equal(tree.find(n=>n.options.id==='note-status').options.h,24);
-    view.message=null;
+    view.notice(`Transport error ${width}`,'error');
+    tree=nodes(view.render(cx));
+    assert.equal(tree.some(n=>n.options.id==='note-status'),false);
+    assert.deepEqual(tree.find(n=>n.options.id==='note-editor').options,editor.options);
   }
+  assert.equal(state.notifications.length,2);
+});
+test('automatic failures are deduplicated while explicit delivery confirmations use native toasts',async t=>{
+  const {view,state}=await fixture(t);
+  view.notice('Disk full','error',true);view.notice('Disk full','error',true);
+  assert.equal(state.notifications.length,1);
+  view.notice('Sent to t7','success');view.notice('Sent to t7','success');
+  assert.equal(state.notifications.length,3);
+  assert.deepEqual(state.notifications.map(n=>n.level),['error','success','success']);
+});
+test('failed autosave and periodic refresh do not repeat the same toast',async t=>{
+  const {view,state,cx}=await fixture(t);
+  view.journal.put=async()=>{throw Error('disk full');};
+  view.editor.set_value('Retain this draft');
+  await until(()=>state.notifications?.length===1&&!view.saving);
+  view.refresh(cx);await until(()=>!view.refreshing);
+  view.refresh(cx);await until(()=>!view.refreshing);
+  assert.equal(state.notifications.length,1);
+  assert.equal(view.book.pending().at(-1).text,'Retain this draft');
 });
 test('detached view registers itself and saves before returning its note to the sidebar',async t=>{
   const context={scope:'space',machine:null,space:'s1',tab:null,label:'Sheep'};
