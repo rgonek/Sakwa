@@ -30,3 +30,23 @@ test('CLI supports paths containing spaces and reports unknown options without w
   const bad=spawnSync(process.execPath,['scripts/install.mjs','--typo'],{encoding:'utf8'});
   assert.notEqual(bad.status,0);assert.match(bad.stderr,/Unknown option/);
 });
+test('personal toolbar integration backs up code, installs navigation and is idempotent',t=>{
+  const root=home(t),tabs=join(root,'mods','personal-tabs');mkdirSync(tabs,{recursive:true});
+  const original=`import { Button } from 'gpui-base';\nconst panelButton = (id) => {\n  const on = false;\n  return Button.new(id).on_click(() => {\n    if (id === "git-review-sidebar") { return; }\n  });\n};\nconst sakwaButton = panelButton("sakwa-sidebar");\n`;
+  writeFileSync(join(tabs,'main.js'),original);
+  const result=install({appHome:root,tabsName:'personal-tabs'});
+  assert.equal(readFileSync(join(result.tabsBackup,'main.js'),'utf8'),original);
+  assert.equal(existsSync(join(tabs,'sakwa-navigation.js')),true);
+  const integrated=readFileSync(join(tabs,'main.js'),'utf8');
+  const check=spawnSync(process.execPath,['--check',join(tabs,'main.js')],{encoding:'utf8'});
+  assert.equal(check.status,0,check.stderr);
+  install({appHome:root,tabsName:'personal-tabs'});
+  assert.equal(readFileSync(join(tabs,'main.js'),'utf8'),integrated);
+});
+test('unsupported toolbar is rejected before any existing code is changed',t=>{
+  const root=home(t),tabs=join(root,'mods','personal-tabs');mkdirSync(tabs,{recursive:true});
+  writeFileSync(join(tabs,'main.js'),'custom toolbar');
+  assert.throws(()=>install({appHome:root,tabsName:'personal-tabs'}),/toolbar/i);
+  assert.equal(readFileSync(join(tabs,'main.js'),'utf8'),'custom toolbar');
+  assert.equal(existsSync(join(root,'mods','sakwa')),false);
+});

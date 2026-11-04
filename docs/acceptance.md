@@ -76,3 +76,22 @@ remains unverified.
   and sidebar were restored after closing only the temporary test views.
 - Host fixture now enforces native element single-use ownership, catching an
   attempted mutation after attaching the body to its frame.
+
+## Button selector and Juhas-style navigation
+
+- Native Button controls now form an exclusive selection group with raised
+  active background, fixed border geometry and stronger active text. Screenshot
+  inspected in the current light theme; no black fill.
+- 41 Node tests pass, covering live/stale routes, deterministic multiple-view
+  routing, source restoration, save-before-close and personal toolbar upgrades.
+- Native tab smoke: active icon with hidden sidebar; from source tab clicking
+  selects the existing note tab; next click returns to source/sidebar and closes
+  only the detached note tab.
+- Native split smoke: from terminal focus clicking focuses the existing note
+  pane; next click restores sidebar and closes only that note pane.
+- Native mod bodies do not receive an automatic pane prop. Opening records the
+  pre-existing pane/tab IDs, then binds only a unique new note pane and caches
+  that identity in per-copy storage. Ambiguous legacy views remain unbound.
+- Source note contents remained intact through all native navigation checks.
+- Scoped independent review found no actionable issue; native acceptance exposed
+  the missing automatic pane prop and its regression test now covers this case.

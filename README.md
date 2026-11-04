@@ -57,8 +57,10 @@ splits use Herdr's own pane management, so personal layouts remain in control.
   Contexts are marked **active**, **archived**, or **unavailable** (for a disconnected
   or still-loading machine). Opening an archived note pins it for editing.
 
-The context selector uses native `RadioGroup` / `Radio` controls styled as buttons with subtle
-theme selection colors. The sidebar has a native rounded frame. Editors opened
+The context selector groups native `Button` controls with exactly one selected;
+the selected button has a raised background, fine border and stronger text. Its
+border space is always reserved, so selection does not move the layout.
+The sidebar has a native rounded frame. Editors opened
 as tabs or split panes are flat and use Herdr's pane frame, without the Sakwa
 header or Open action. The sidebar header's Open icon offers New tab, Beside,
 and Below.
@@ -69,8 +71,33 @@ Herdr commands `sakwa.tab`, `sakwa.space`, `sakwa.global`, and `sakwa.all` reach
 copies. Native panes can also be opened explicitly:
 
 ```sh
-herdr-app do pane.split --direction right --mod sakwa
+herdr-app do pane.split --direction right --mod sakwa --props '{"role":"pane"}'
 ```
+
+## Toolbar navigation
+
+An existing Sakwa button in a personal tabs mod can be upgraded with:
+
+```sh
+node scripts/install.mjs --tabs my-personal-tabs
+```
+
+The supported integration is the personal `panelButton` toolbar used by the
+Herdr/Juhas layout. The installer checks compatibility before writing, backs up
+the toolbar and copies a standalone navigation helper. It refuses shipped tabs
+mods and never replaces the layout.
+
+The icon stays active when the sidebar is visible or a detached Sakwa view is
+open in the current space. Clicking an inactive detached view focuses it. Clicking
+while that note has focus saves pending text, returns to its source tab, restores
+the note in the sidebar and closes the detached view. With no detached view,
+clicking toggles the sidebar. Missing source tabs or sidebars leave the note open
+and report the problem in the fixed status area.
+
+When several views exist, navigation prefers the focused view, then a view in
+the current tab, then one opened from that tab; remaining ties prefer the most
+recently opened view. There is no navigation picker. The multi-agent recipient
+picker is independent and remains available when sending.
 
 ## Saving and recovery
 

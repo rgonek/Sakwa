@@ -8,11 +8,13 @@ import { createDraftBook } from './drafts.js';
 import { createRecovery } from './recovery.js';
 import { fileAdapter } from './persistence.js';
 import { openNote, sendNote } from './presentation.js';
+import { returnNoteToSidebar } from './navigation.js';
 import { text, button, popover, row, contextGroup } from './ui.js';
 
 export default class Sakwa extends View {
   init(initial,cx) {
     initial={...initial,...props()};
+    this.contextProps=initial;this.viewId=revisionId();this.openedAt=Date.now();
     this.framed=initial?.role==='sidebar'||initial?.role!=='pane'&&!initial?.pane&&!initial?.overlay;
     this.scope='tab';this.pinned=validContext(initial?.context)?initial.context:null;
     this.current=null;this.baseIds=[];this.loaded=false;this.busy=false;this.panel=null;
@@ -43,6 +45,7 @@ export default class Sakwa extends View {
         if(name==='focus')this.editor.focus();
         if(['tab','space','global'].includes(name))this.selectScope(name,cx);
         if(name==='all'){this.panel='all';cx.notify();}
+        if(name==='sidebar'&&!this.framed&&focused()?.pane===this.paneId)this.returnSidebar(cx);
       }
     });
   }
@@ -55,6 +58,12 @@ export default class Sakwa extends View {
     finally { this.setting=false; }
   }
   sync() {
+    const selection=shared('sakwa.sidebar.selection.v1'),focus=focused();
+    if(this.framed&&selection?.token!==this.sidebarToken&&selection?.space===focus?.space&&selection?.tab===focus?.tab&&validContext(selection.context)){
+      this.sidebarToken=selection.token;this.scope=selection.context.scope;
+      const natural=contextFor(this.scope,focus,spaces());
+      this.pinned=natural&&contextKey(natural)===contextKey(selection.context)?null:selection.context;
+    }
     const next=this.desired();
     if(!next){this.current=null;this.setText('');return;}
     const key=contextKey(next),changed=!this.current || contextKey(this.current)!==key;
@@ -65,6 +74,42 @@ export default class Sakwa extends View {
       this.setText(draft?.text ?? note?.text ?? '');this.baseIds=ids;
     }
     this.current=next;
+    this.publishView();
+  }
+  publishView() {
+    if(this.framed||!this.current||this.contextProps.overlay)return;
+    const allPanes=panes();
+    const stored=this.paneId||this.contextProps.pane||localStorage.getItem('sakwa.native-pane.v1');
+    let pane=allPanes.find(p=>p.pane===stored&&p.mod==='sakwa');
+    if(!pane){
+      const {opening,source}=this.contextProps;
+      const candidates=allPanes.filter(p=>p.mod==='sakwa'&&
+        (opening?!opening.panes.includes(p.pane)&&(opening.place==='tab'?!opening.tabs.includes(p.tab):p.tab===source?.tab):
+          spaces().some(s=>s.id===(source?.space||focused()?.space)&&s.tabs.some(t=>t.id===p.tab))));
+      if(candidates.length===1)pane=candidates[0];
+    }
+    if(!pane)return;
+    this.paneId=pane.pane;
+    if(stored!==pane.pane){try{localStorage.setItem('sakwa.native-pane.v1',pane.pane);}catch{/* Identity can be rediscovered; drafts remain independent. */}}
+    const space=spaces().find(s=>s.tabs.some(t=>t.id===pane.tab));if(!space)return;
+    const source=this.contextProps.source||{space:space.id,tab:this.current.tab||space.tabs.find(t=>panes().some(p=>p.tab===t.id&&p.terminal))?.id};
+    const record={pane:pane.pane,tab:pane.tab,space:space.id,context:{...this.current},source,at:this.openedAt};
+    const previous=shared('sakwa.views.v1')||{};
+    if(JSON.stringify(previous[this.viewId])===JSON.stringify(record))return;
+    const registry=Object.fromEntries(Object.entries(previous).filter(([id,r])=>id!==this.viewId&&r?.pane!==pane.pane&&panes().some(p=>p.pane===r?.pane&&p.mod==='sakwa')));
+    setShared('sakwa.views.v1',{...registry,[this.viewId]:record});
+  }
+  returnSidebar(cx) {
+    if(this.moving||this.framed||!this.current)return;
+    this.moving=true;this.publishView();
+    const record=shared('sakwa.views.v1')?.[this.viewId];
+    this.work(cx,async()=>{
+      try {
+        if(!record)throw Error('This note view is still opening; try again');
+        await this.book.flush();
+        returnNoteToSidebar(run,{focus:focused(),spaces:spaces(),panes:panes(),layout:layout()},record,setShared);
+      } finally {this.moving=false;}
+    });
   }
   selectScope(scope,cx) {
     this.pinned=null;this.scope=scope;this.panel=null;this.message=null;this.sync();cx.notify();
@@ -134,6 +179,9 @@ export default class Sakwa extends View {
   async close() {
     // Start a fresh flush here; Herdr gives cleanup at most 250 ms.
     if(this.book){try{await this.book.flush();await localStorage.flush();}catch{/* Drafts remain for retry. */}}
+    const registry=shared('sakwa.views.v1');if(registry?.[this.viewId]){
+      const next={...registry};delete next[this.viewId];setShared('sakwa.views.v1',next);
+    }
   }
 
   archive(cx) {
@@ -153,8 +201,10 @@ export default class Sakwa extends View {
   render(cx) {
     // Schedule retained input changes outside render, as required by GPUI.
     const desired=this.desired(),key=desired?contextKey(desired):null;
+    const selection=shared('sakwa.sidebar.selection.v1'),focus=focused();
+    const returned=this.framed&&selection?.token!==this.sidebarToken&&selection?.space===focus?.space&&selection?.tab===focus?.tab;
     if(this.loaded && (key!==(this.current?contextKey(this.current):null) ||
-      this.generation!==shared('sakwa.changed.v1')) && !this.scheduled) {
+      returned||this.generation!==shared('sakwa.changed.v1')) && !this.scheduled) {
       this.scheduled=true;
       cx.spawn(async cx=>{
         this.scheduled=false;

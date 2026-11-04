@@ -83,6 +83,33 @@ test('top actions adapt labels to width and messages use a fixed status area',as
     view.message=null;
   }
 });
+test('detached view registers itself and saves before returning its note to the sidebar',async t=>{
+  const context={scope:'space',machine:null,space:'s1',tab:null,label:'Sheep'};
+  const {view,state,cx}=await fixture(t,{pane:'n1',role:'pane',context,source:{space:'s1',tab:'t1',pane:'p1'}});
+  state.spaces[0].tabs.push({id:'notes'});state.focus={space:'s1',tab:'notes',pane:'n1'};
+  state.panes=[{pane:'p1',tab:'t1',terminal:'t7'},{pane:'n1',tab:'notes',mod:'sakwa'}];
+  state.layout={id:'root',type:'row',children:[{id:'work',content:{tab:'active'}},{id:'rail',hidden:true,content:{mod:'sakwa'}}]};
+  view.sync();assert.equal(Object.values(state.shared.get('sakwa.views.v1'))[0].pane,'n1');
+  view.editor.set_value('Preserve before returning');view.returnSidebar(cx);
+  await until(()=>state.commands.some(([name])=>name==='tab.close'));
+  assert.equal(view.journal.notes()[0].text,'Preserve before returning');
+  assert.equal(state.shared.get('sakwa.sidebar.selection.v1').context.scope,'space');
+});
+test('native body without pane prop binds only its new pane from the opening snapshot',async t=>{
+  const context={scope:'tab',machine:null,space:'s1',tab:'t1',label:'One'};
+  const {view,state}=await fixture(t,{role:'pane',context,source:{space:'s1',tab:'t1',pane:'p1'},
+    opening:{place:'right',panes:['p1','existing-note'],tabs:['t1']}});
+  state.panes=[{pane:'p1',tab:'t1',terminal:'t7'},{pane:'existing-note',tab:'t1',mod:'sakwa'},{pane:'new-note',tab:'t1',mod:'sakwa'}];
+  view.sync();assert.equal(Object.values(state.shared.get('sakwa.views.v1'))[0].pane,'new-note');
+  state.panes.push({pane:'later-note',tab:'t1',mod:'sakwa'});view.sync();
+  assert.equal(Object.values(state.shared.get('sakwa.views.v1'))[0].pane,'new-note');
+});
+test('sidebar consumes returned context selection even when its previous context key was unchanged',async t=>{
+  const {view,state,cx}=await fixture(t);
+  state.shared.set('sakwa.sidebar.selection.v1',{context:{scope:'global',machine:null,space:null,tab:null,label:'Global'},space:'s1',tab:'t1',token:'return-one'});
+  view.render(cx);await until(()=>view.current?.scope==='global');
+  assert.equal(view.scope,'global');
+});
 test('view keeps edits attached to their original tab through async save and switch',async t=>{
   const {view,state,cx,failures}=await fixture(t);
   view.editor.set_value('One 🐑');state.focus={space:'s1',tab:'t2',pane:'p2'};

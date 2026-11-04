@@ -5,7 +5,7 @@ const context={scope:'tab',machine:null,space:'s1',tab:'t1',label:'One'};
 test('new tab and splits pin original note context and target an explicit pane',()=>{
   const calls=[],run=(...args)=>calls.push(args);
   openNote(run,'tab',context,{space:'s1',tab:'t1'},[]);
-  assert.deepEqual(calls[0],['tab.new',{name:'Sakwa · One',space:'s1',mod:'sakwa',props:{context,role:'pane'}}]);
+  assert.deepEqual(calls[0],['tab.new',{name:'Sakwa · One',space:'s1',mod:'sakwa',props:{context,role:'pane',source:{space:'s1',tab:'t1',pane:null},opening:{place:'tab',panes:[],tabs:[]}}}]);
   openNote(run,'right',context,{space:'s1',tab:'t1',pane:null},[{pane:'p1',tab:'t1',terminal:'t7'}]);
   assert.equal(calls[1][1].pane,'p1');assert.deepEqual(calls[1][1].props.context,context);
   assert.throws(()=>openNote(run,'down',context,null,[]),/pane/i);
