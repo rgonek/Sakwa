@@ -33,14 +33,15 @@ test('context group marks current scope including pinned notes and switches on s
   const context={scope:'space',machine:null,space:'s1',tab:null,label:'Sheep'};
   const {view,cx}=await fixture(t,{context});
   let tree=nodes(view.render(cx));
-  const group=tree.find(n=>n.type==='radio-group');assert.ok(group);
-  assert.equal(tree.find(n=>n.options.id==='scope-space').options.checked,true);
-  const tab=tree.find(n=>n.options.id==='scope-tab');tab.handlers.on_change(true,cx);
+  const group=tree.find(n=>n.options.id==='note-context');assert.equal(group.options.role,'group');
+  assert.equal(tree.find(n=>n.options.id==='scope-space').type,'button');
+  assert.equal(tree.find(n=>n.options.id==='scope-space').options.selected,true);
+  const tab=tree.find(n=>n.options.id==='scope-tab');tab.handlers.on_click({},cx);
   tree=nodes(view.render(cx));
-  assert.equal(tree.find(n=>n.options.id==='scope-tab').options.checked,true);
-  assert.equal(tree.filter(n=>n.type==='radio'&&n.options.checked).length,1);
-  tree.find(n=>n.options.id==='scope-tab').handlers.on_change(false,cx);
-  assert.equal(nodes(view.render(cx)).filter(n=>n.type==='radio'&&n.options.checked).length,1);
+  assert.equal(tree.find(n=>n.options.id==='scope-tab').options.selected,true);
+  assert.equal(tree.filter(n=>n.type==='button'&&n.options.selected).length,1);
+  tree.find(n=>n.options.id==='scope-tab').handlers.on_click({},cx);
+  assert.equal(nodes(view.render(cx)).filter(n=>n.type==='button'&&n.options.selected).length,1);
   assert.equal(tree.some(n=>n.nodes.includes('Sheep / One')),false);
 });
 test('sidebar frame is flat for native pane or tab copies',async t=>{

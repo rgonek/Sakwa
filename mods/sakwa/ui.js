@@ -1,5 +1,5 @@
 import { div, svg } from 'gpui-kit';
-import { Button, Popover, RadioGroup, Radio, h_flex, v_flex } from 'gpui-base';
+import { Button, Popover, h_flex, v_flex } from 'gpui-base';
 import { theme } from 'herdr';
 
 export function text(value,muted=false) {
@@ -25,18 +25,19 @@ export function popover(id,label,open,change,content,options={}) {
 export function contextGroup(selected,select,description) {
   const t=theme();
   return h_flex().flex_none().w_full().min_w(0).tooltip(description||'Note context')
-    .child(RadioGroup.new('note-context').axis('horizontal').accessibility_label('Note context')
+    .child(h_flex().id('note-context').role('group').accessibility_label('Note context')
     .flex().flex_row().flex_none().w_full().min_w(0)
-    .rounded(7).border_1().border_color(t.border).overflow_hidden()
-    .children(['tab','space','global'].map((scope,index)=>{
+    .rounded(7).p(2).gap(2).bg(t.chrome).border_1().border_color(t.border).overflow_hidden()
+    .children(['tab','space','global'].map(scope=>{
       const active=scope===selected,label=scope[0].toUpperCase()+scope.slice(1);
-      return Radio.new(`scope-${scope}`).checked(active).selected(active).tab_index(0)
+      return Button.new(`scope-${scope}`).selected(active).tab_index(0)
         .accessibility_label(label)
-        .on_change((checked,cx)=>{if(checked)select(scope,cx);})
-        .h(28).flex_1().min_w(0).flex().items_center().justify_center().text_size(12)
-        .bg(active?t.selected:t.chrome).text_color(active?t.foreground:t.muted)
-        .when(index>0,e=>e.border_l(1).border_color(t.border))
-        .hover(e=>e.bg(active?t.selected:t.hover)).child(label);
+        .on_click((_event,cx)=>select(scope,cx))
+        .h(26).flex_1().min_w(0).flex().items_center().justify_center().text_size(12).rounded(5)
+        .border_1().border_color(active?t.input:t.chrome)
+        .bg(active?t.raised:t.chrome).text_color(active?t.foreground:t.muted)
+        .when(active,e=>e.font_semibold())
+        .hover(e=>e.bg(active?t.raised:t.hover)).child(label);
     })));
 }
 export function row() { return h_flex().flex_none().min_w(0).gap(4).items_center().flex_wrap(); }
