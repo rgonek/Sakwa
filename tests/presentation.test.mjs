@@ -10,6 +10,19 @@ test('new tab and splits pin original note context and target an explicit pane',
   assert.equal(calls[1][1].pane,'p1');assert.deepEqual(calls[1][1].props.context,context);
   assert.throws(()=>openNote(run,'down',context,null,[]),/pane/i);
 });
+test('opening elsewhere hides the originating sidebar container without layout-specific IDs',()=>{
+  const layout={id:'window',type:'row',children:[{id:'work',content:{tab:'active'}},
+    {id:'custom-rail',type:'column',children:[{id:'custom-stack',type:'stack',active:'notes',children:[
+      {id:'files',content:{mod:'files'}},{id:'notes',content:{mod:'sakwa'}}]}]}]};
+  for(const place of ['tab','right','down']){
+    const calls=[];
+    openNote((...args)=>calls.push(args),place,context,{space:'s1',tab:'t1',pane:'p1'},[{pane:'p1',tab:'t1'}],layout);
+    assert.deepEqual(calls.at(-1),['layout.hide',{id:'custom-rail'}]);
+  }
+  const calls=[];
+  assert.throws(()=>openNote((...a)=>calls.push(a),'right',context,null,[],layout));
+  assert.equal(calls.length,0);
+});
 test('sending revalidates recipient and sends whole text without clearing',async()=>{
   const sent=[],live=[{address:'t7',space:'s1',tab:'t1',app:'codex'}],terminals=[{address:'t7',state:'live'}];
   const transport=async args=>{sent.push(args);return {code:0,stdout:'',stderr:''};};

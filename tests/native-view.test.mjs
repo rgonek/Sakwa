@@ -65,6 +65,23 @@ test('Open popover has measurable height and its items dispatch native placement
   assert.deepEqual(state.commands.map(c=>c[0]),['tab.new','pane.split','pane.split']);
   assert.ok(state.commands.every(c=>c[1].props.role==='pane'));
 });
+test('top actions adapt labels to width and messages use a fixed status area',async t=>{
+  const {view,cx}=await fixture(t);
+  for(const [width,labels] of [[280,false],[700,true]]){
+    view.width=width;let tree=nodes(view.render(cx));
+    const tools=nodes(tree.find(n=>n.options.id==='scope-tools'));
+    const all=tools.find(n=>n.options.id==='all-notes'),send=tools.find(n=>n.options.id==='send');
+    assert.ok(all);assert.ok(send);
+    assert.equal(nodes(all).some(n=>n.nodes.includes('All notes')),labels);
+    assert.equal(nodes(send.options.trigger).some(n=>n.nodes.includes('Send to agent')),labels);
+    assert.equal(tree.some(n=>n.options.id==='copy-note'),false);
+    const footer=tree.find(n=>n.options.id==='note-status');assert.equal(footer.options.h,24);
+    assert.equal(tree.some(n=>n.nodes.includes('Saved')),false);
+    view.message='A very long transport error';
+    tree=nodes(view.render(cx));assert.equal(tree.find(n=>n.options.id==='note-status').options.h,24);
+    view.message=null;
+  }
+});
 test('view keeps edits attached to their original tab through async save and switch',async t=>{
   const {view,state,cx,failures}=await fixture(t);
   view.editor.set_value('One 🐑');state.focus={space:'s1',tab:'t2',pane:'p2'};

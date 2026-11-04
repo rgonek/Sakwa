@@ -59,3 +59,20 @@ remains unverified.
   corrected both runtime and host fixture, with failing/passing pinned-context
   and flat-mode tests. No custom Sakwa header or Open control in detached views;
   All notes occupies the same context-row position in both presentations.
+
+## Sidebar handoff / stable toolbar
+
+- Opening a tab or split hides the visible originating Sakwa sidebar container,
+  discovered from the current layout tree rather than hard-coded node IDs.
+- Sidebar header follows Files/Changes: 42px high, 14px horizontal padding,
+  title and bottom divider, without a title icon.
+- Copy and persistent Saved label removed. All notes and Send to agent share the
+  top toolbar, with labels only when enough width is available.
+- Save, delivery and error messages share a reserved 24px single-line status area;
+  long details are exposed through a tooltip and never change the editor height.
+- 30 Node tests pass, including sidebar handoff, responsive labels and fixed status geometry.
+- Native smoke verified sidebar hiding after New tab and Beside; screenshots
+  confirmed labels in wide views and icons in the narrow sidebar. Original pane
+  and sidebar were restored after closing only the temporary test views.
+- Host fixture now enforces native element single-use ownership, catching an
+  attempted mutation after attaching the body to its frame.

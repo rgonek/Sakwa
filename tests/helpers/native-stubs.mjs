@@ -1,16 +1,20 @@
 import * as fs from 'node:fs/promises';
 export class View {}
 export function element(type) {
-  const node={type,nodes:[],handlers:{},options:{}};
+  const node={type,nodes:[],handlers:{},options:{},consumed:false};
   const proxy=new Proxy(node,{get(target,key){
     if(key in target)return target[key];
     if(key==='then')return undefined;
     return (...args)=>{
+      if(target.consumed)throw Error('Native elements are single-use after attachment');
+      const attach=child=>{if(child&&typeof child==='object'&&Array.isArray(child.nodes))child.consumed=true;};
       if(key==='child')target.nodes.push(args[0]);
       else if(key==='children')target.nodes.push(...args[0]);
       else if(key==='when'){if(args[0])args[1](proxy);}
       else if(key==='on_click'||key==='on_open_change'||key==='on_change')target.handlers[key]=args[0];
       else target.options[key]=args.length===1?args[0]:args;
+      if(['child','trigger','content'].includes(key))attach(args[0]);
+      if(key==='children')args[0].forEach(attach);
       return proxy;
     };
   }});
@@ -32,6 +36,7 @@ export const theme=()=>new Proxy({},{get:()=> '#888888'});
 export const spaces=()=>globalThis.nativeTest.spaces,machines=()=>[{name:null,layout:'ready'}];
 export const agents=()=>globalThis.nativeTest.agents||[],terminals=()=>globalThis.nativeTest.terminals||[];
 export const panes=()=>globalThis.nativeTest.panes||[],focused=()=>globalThis.nativeTest.focus;
+export const layout=()=>globalThis.nativeTest.layout||null;
 export const props=()=>globalThis.nativeTest.props||{},run=(...args)=>globalThis.nativeTest.commands.push(args);
 export const appHome=()=>globalThis.nativeTest.home;
 export const shared=key=>globalThis.nativeTest.shared.get(key);

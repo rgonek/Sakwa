@@ -1,6 +1,6 @@
-import { View, svg } from 'gpui-kit';
-import { v_flex, TextareaState, Textarea, InputState, Input } from 'gpui-base';
-import { spaces, machines, agents, terminals, focused, panes, theme, props, run,
+import { View } from 'gpui-kit';
+import { h_flex, v_flex, TextareaState, Textarea, InputState, Input } from 'gpui-base';
+import { spaces, machines, agents, terminals, focused, panes, theme, props, layout, run,
   hc, shared, setShared, nextCommand } from 'herdr';
 import { contextFor, contextKey, contextStatus, validContext, recipients } from './context.js';
 import { createJournal, revisionId } from './journal.js';
@@ -109,7 +109,7 @@ export default class Sakwa extends View {
     return [...byKey.values()].sort((a,b)=>b.at-a.at);
   }
   open(place,cx) {
-    try { openNote(run,place,this.current,focused(),panes());this.panel=null; }
+    try { openNote(run,place,this.current,focused(),panes(),this.framed?layout():null);this.panel=null; }
     catch(e) { this.message=e.message; }
     cx.notify();
   }
@@ -168,36 +168,39 @@ export default class Sakwa extends View {
     const status=currentKey?this.book?.status(currentKey):null;
     const candidates=recipients(this.current,agents(),terminals());
     const problem=this.fatal || this.loadError || this.book?.error;
-    const root=v_flex().id('sakwa-root').size_full().min_h(0).min_w(0).p(10).gap(8)
+    const details=[problem,this.sharedRecoveryError,this.book?.recoveryError,
+      ...this.journal.errors,this.message,note?.heads.length>1?`${note.heads.length} concurrent versions preserved in recovery files.`:null].filter(Boolean);
+    const statusText=problem?'Save failed — draft retained':this.message||
+      (!this.loaded?'Loading notes…':status==='saving'?'Saving…':details[0]||'');
+    const labels=(this.width||0)>=460;
+    const frame=v_flex().id('sakwa-root').size_full().min_h(0).min_w(0)
       .on_size_change((size,cx)=>{if(this.width!==size.width){this.width=size.width;cx.notify();}})
       .when(this.framed,e=>e.rounded(10).border_1().border_color(t.border))
       .overflow_hidden().bg(t.background).text_color(t.foreground).text_size(12)
-      .when(this.framed,e=>e.child(row().child(svg('mods/sakwa/icon.svg').size(18)).child(text('Sakwa').font_semibold().flex_1())
+      .when(this.framed,e=>e.child(h_flex().h(42).flex_none().px(14).gap(8).items_center().border_b(1).border_color(t.border)
+        .child(text('Sakwa').text_size(13).font_semibold().flex_1())
         .child(popover('open-note','Open',this.panel==='open',(open,cx)=>{this.panel=open?'open':null;cx.notify();},()=>
           v_flex().gap(4).children([['tab','New tab','square-arrow-out-up-right'],['right','Beside','columns-2'],['down','Below','rows-2']].map(([place,label,icon])=>
-            button(`open-${place}`,label,(_e,cx)=>this.open(place,cx),{disabled:!ready,icon}))),{icon:'panel-right',iconOnly:true,height:116}))))
-      .when(Boolean(problem),e=>e.child(text(`Not saved: ${problem}`).text_color(t.ansi1))
-        .child(button('retry','Retry',(_e,cx)=>{this.save(cx);this.refresh(cx);})))
-      .when(Boolean(this.journal.errors.length),e=>e.child(text(`${this.journal.errors.length} unreadable history file(s) preserved. See data/sakwa/revisions.`,true)))
-      .when(Boolean(this.book?.recoveryError),e=>e.child(text(`Recovery cache: ${this.book.recoveryError}. Keep this editor open until Saved.`,true)));
-    if(this.sharedRecoveryError)root.child(text(this.sharedRecoveryError,true));
-    if(this.panel==='all')return root.child(this.archive(cx));
-    return root
+            button(`open-${place}`,label,(_e,cx)=>this.open(place,cx),{disabled:!ready,icon}))),{icon:'panel-right',iconOnly:true,height:116}))));
+    const root=v_flex().flex_1().min_h(0).min_w(0).p(10).gap(8);
+    if(this.panel==='all'){root.child(this.archive(cx));return frame.child(root);}
+    root
       .child(row().id('scope-tools')
         .child(v_flex().flex_1().min_w(0).child(contextGroup(this.current?.scope||this.pinned?.scope||this.scope,(scope,cx)=>this.selectScope(scope,cx),
           this.current?`${this.pinned?'Pinned · ':''}${this.current.label}`:null)))
-        .child(button('all-notes','All notes',(_e,cx)=>{this.panel='all';cx.notify();},{icon:'archive',iconOnly:true})))
-      .when(!this.loaded,e=>e.child(text('Loading notes…',true)))
-      .when(ready,e=>e.child(Textarea.new(this.editor).flex_1().size_full().min_h(100).min_w(0)
-        .px(12).py(10).rounded(8).border_1().border_color(t.border).bg(t.background).text_color(t.foreground).text_size(13)))
-      .when(Boolean(note?.heads.length>1),e=>e.child(text(`${note.heads.length} concurrent versions preserved in recovery files.`).text_color(t.ansi3)))
-      .child(row().child(text(status==='saved'?'Saved':status==='error'?'Save failed — draft retained':status==='saving'?'Saving…':'',true).flex_1())
-        .child(button('copy-note','Copy',(_e,cx)=>cx.write_to_clipboard(this.editor.value()),{disabled:!ready,icon:'copy',iconOnly:true}))
+        .child(button('all-notes','All notes',(_e,cx)=>{this.panel='all';cx.notify();},{icon:'archive',iconOnly:!labels}))
         .child(popover('send','Send to agent',this.panel==='recipients',(open,cx)=>{
           if(open)this.sendClick(cx);else if(this.panel==='recipients'){this.panel=null;cx.notify();}
         },()=>v_flex().gap(4).when(!candidates.length,e=>e.child(text('No live agents in this note context.',true)))
           .children(candidates.map(a=>button(`send-${a.address}`,`${a.name} · ${a.address}`,(_e,cx)=>this.send(a.address,cx),{disabled:this.busy}))),
-        {disabled:!ready||this.busy||!this.editor.value().trim(),icon:'send',iconOnly:this.width<280,tooltip:candidates.length?'Send the full note to an agent':'No live agents in this note context'})))
-      .when(Boolean(this.message),e=>e.child(text(this.message,true)));
+        {disabled:!ready||this.busy||!this.editor.value().trim(),icon:'send',iconOnly:!labels,tooltip:candidates.length?'Send the full note to an agent':'No live agents in this note context'})))
+      .child(v_flex().flex_1().min_h(0).min_w(0)
+        .when(ready,e=>e.child(Textarea.new(this.editor).size_full().min_h(0).min_w(0)
+          .px(12).py(10).rounded(8).border_1().border_color(t.border).bg(t.background).text_color(t.foreground).text_size(13))))
+      .child(h_flex().id('note-status').h(24).flex_none().min_w(0).gap(4).items_center().overflow_hidden()
+        .child(text(statusText,true).flex_1().min_w(0).truncate().tooltip(details.join('\n')||statusText)
+          .when(Boolean(problem),e=>e.text_color(t.ansi1)))
+        .when(Boolean(problem),e=>e.child(button('retry','Retry',(_e,cx)=>{this.save(cx);this.refresh(cx);}).h(22))));
+    return frame.child(root);
   }
 }

@@ -1,11 +1,32 @@
 import { recipients } from './context.js';
 
-export function openNote(run,place,context,focus,panes) {
+function sidebarContainer(root) {
+  function visit(node,path) {
+    if(!node||node.hidden)return null;
+    if(node.content?.mod==='sakwa' && node.content.props?.role!=='pane')return [...path,node];
+    const children=node.type==='stack'?(node.children||[]).filter((c,i)=>node.active?c.id===node.active:i===0):node.children||[];
+    for(const child of children){const found=visit(child,[...path,node]);if(found)return found;}
+    return null;
+  }
+  const path=visit(root,[]);if(!path)return null;
+  let target=path.at(-1).id;
+  for(let i=path.length-2;i>0;i--){
+    const parent=path[i],visible=(parent.children||[]).filter(c=>!c.hidden);
+    if(parent.type!=='stack'&&visible.length!==1)break;
+    if(parent.id)target=parent.id;
+  }
+  return target;
+}
+
+export function openNote(run,place,context,focus,panes,sidebarLayout=null) {
   if (!context) throw Error('Select a note first');
+  const origin=sidebarContainer(sidebarLayout);
+  const hideOrigin=()=>{if(origin)run('layout.hide',{id:origin});};
   const props = {context:{...context},role:'pane'};
   if (place === 'tab') {
     if (!focus?.space) throw Error('Select a space before opening a tab');
     run('tab.new',{name:`Sakwa · ${context.label}`,space:focus.space,mod:'sakwa',props});
+    hideOrigin();
     return;
   }
   if (!['right','down'].includes(place)) throw Error('Unknown placement');
@@ -13,6 +34,7 @@ export function openNote(run,place,context,focus,panes) {
     panes.find(p=>p.tab === focus?.tab && p.terminal) || panes.find(p=>p.tab === focus?.tab);
   if (!target) throw Error('No native pane available to split');
   run('pane.split',{pane:target.pane,direction:place,mod:'sakwa',props});
+  hideOrigin();
 }
 
 export function utf8Length(text) {

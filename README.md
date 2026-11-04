@@ -43,11 +43,13 @@ splits use Herdr's own pane management, so personal layouts remain in control.
 - **Tab / Space / Global** is a single context selector; the current scope stays
   highlighted. The sidebar follows your selected tab or space. Global means this
   local Herdr installation. Hover the selector to see the context's name.
-- Type freely: **Saving…** becomes **Saved** after the atomic file write completes.
-  Errors retain the draft, show a warning and retry every three seconds.
+- Type freely: **Saving…** is shown while writing and disappears when the write
+  completes. Status and errors use a fixed-height line, so messages never resize
+  the editor. Errors retain the draft and retry every three seconds.
 - **Open ▾ → New tab / Beside / Below** opens another editor pinned to the original
-  note. Changing tabs does not change a pinned note. The source editor stays open.
-- **Send to agent** uses live agents in the note's original tab, space, or all
+  note. Changing tabs does not change a pinned note. The source sidebar hides
+  after opening the detached editor.
+- **Send to agent**, beside All notes above the editor, uses live agents in the note's original tab, space, or all
   contexts for Global. One agent receives directly; several open a picker.
   No agents shows an explanation. The note stays intact after sending.
 - **All notes** (the archive icon beside the context selector in every view)
@@ -60,6 +62,8 @@ theme selection colors. The sidebar has a native rounded frame. Editors opened
 as tabs or split panes are flat and use Herdr's pane frame, without the Sakwa
 header or Open action. The sidebar header's Open icon offers New tab, Beside,
 and Below.
+All notes and Send to agent show labels when the toolbar has room; narrow views
+use icons with tooltips. The sidebar title bar matches Files and Changes.
 
 Herdr commands `sakwa.tab`, `sakwa.space`, `sakwa.global`, and `sakwa.all` reach shown
 copies. Native panes can also be opened explicitly:
@@ -89,7 +93,7 @@ pane or tab is removed. Recovery retries at startup and during the ten-second
 refresh; successful immutable revisions remove the corresponding shared draft.
 Recovery favors retaining text and may preserve intermediate versions from
 another editor that is still open.
-Keep an editor open until **Saved** when storage errors occur. Back up the
+Keep an editor open until saving finishes and storage errors clear. Back up the
 **whole Herdr app home** to include both recovery stores and history.
 
 Concurrent windows write separate revisions. Neither overwrites the other's
@@ -107,8 +111,8 @@ and `context` fields. History is unbounded in v0.1; large journals cost disk spa
 and take longer to load. Do not delete revisions unless you have an external backup.
 
 No application can guarantee the last keystroke survives a crash, power failure,
-or forced termination before a write reaches disk. **Saved** confirms completion
-of Herdr's atomic write API; it is not a guarantee against hardware failure.
+or forced termination before a write reaches disk. The saving indicator clears
+after completion of Herdr's atomic write API; this is not a guarantee against hardware failure.
 Closing cleanup is best-effort and limited by Herdr to 250 ms.
 
 ## Privacy and sending
