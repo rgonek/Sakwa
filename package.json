@@ -6,5 +6,5 @@
   "description": "Native notes for Herdr: tab, space and global",
   "license": "MIT",
   "scripts": { "test": "node --test", "install-mod": "node scripts/install.mjs" },
-  "engines": { "node": ">=22" }
+  "engines": { "node": ">=22.15" }
 }
