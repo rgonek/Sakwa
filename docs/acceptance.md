@@ -108,3 +108,17 @@ remains unverified.
   the installed code was restored without the preview instrumentation.
 - Regression test confirms a failed autosave followed by repeated periodic
   refreshes retains the draft and emits only one error toast.
+# Markdown source editor — 2026-11-04
+
+- Replaced retained TextareaState with native EditorState, language `markdown`,
+  soft wrapping, 13px font, no line numbers or folding, semantic theme colors.
+- `npm test`: 44 passed. Coverage includes exact Markdown/Unicode preservation
+  through autosave and context switching, using an Editor stub without focus or
+  selection methods, matching Herdr 0.1.12.
+- Repository and installed mod passed `herdr-app check` with captured exit 0.
+- Viewed the actual native Sakwa component with synthetic in-memory notes:
+  Markdown punctuation is highlighted, the editor fills its container, long
+  prose wraps, and scope/send controls render correctly. No real notes were used.
+- Herdr 0.1.12 does not expose EditorState focus, caret placement or placeholder.
+  Scope selection therefore requires clicking the note before typing. Interactive
+  keyboard/IME acceptance and macOS/Linux remain unverified.

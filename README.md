@@ -26,7 +26,7 @@ keeps the note, so you can come back to it.
 ## Install
 
 Requires the JavaScript/GPUI Herdr app, with `writeTextFile` atomic creation,
-`fs/promises`, native `TextareaState`, and `localStorage.flush()`.
+`fs/promises`, native `EditorState`, and `localStorage.flush()`.
 Developed against **herdr-app 0.1.12**. This is not a Luau mod for the older Herdr UI.
 Node **22.15+** is needed only for installation and development; the mod itself
 runs inside Herdr without Node, PowerShell, Python, or shell commands.
@@ -51,13 +51,18 @@ data and personal layouts. Herdr controls docking after the first discovery.
 No dependencies to download. Manual installation: copy `mods/sakwa` into the
 Herdr app's `mods` folder, excluding generated `.d.ts` and `jsconfig.json` files.
 
-The interface uses Herdr's native `Button`, `Popover`, `Input` and `Textarea`
+The interface uses Herdr's native `Button`, `Popover`, `Input` and `Editor`
 components and theme colors, with bundled Lucide icons. There are no layout node
 IDs, theme-specific colors, or custom layouts to maintain. Controls wrap in narrow
 panels; compact icon buttons keep tooltips and accessible labels. New tabs and
 splits use Herdr's own pane management, so personal layouts remain in control.
 
 ## Use
+
+Notes use a native Markdown source editor with syntax highlighting and wrapped
+lines. Markdown is saved and sent exactly as typed. In Herdr 0.1.12, click the note
+after selecting Tab / Space / Global to resume typing: the editor API does not
+expose programmatic focus or cursor placement.
 
 - **Tab / Space / Global** is a single context selector; the current scope stays
   highlighted. The sidebar follows your selected tab or space. Global means this

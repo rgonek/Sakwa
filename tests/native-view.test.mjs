@@ -44,28 +44,29 @@ test('context group marks current scope including pinned notes and switches on s
   assert.equal(nodes(view.render(cx)).filter(n=>n.type==='button'&&n.options.selected).length,1);
   assert.equal(tree.some(n=>n.nodes.includes('Sheep / One')),false);
 });
-test('selecting a context immediately focuses its note editor, including the active option',async t=>{
+test('Markdown editor preserves notes and context selection without native focus methods',async t=>{
   const {view,cx}=await fixture(t);
+  assert.equal(typeof view.editor.focus,'undefined');
+  assert.equal(typeof view.editor.set_selected_range,'undefined');
+  const markdown='# Heading 🐑\n\n- [ ] task\n\n```sql\nSELECT 1;\n```';
+  view.editor.set_value(markdown);await until(()=>!view.book.pending().length);
+  view.selectScope('global',cx);assert.equal(view.editor.value(),'');
+  view.editor.set_value('Global');await until(()=>!view.book.pending().length);
+  view.selectScope('tab',cx);assert.equal(view.editor.value(),markdown);
   for(const scope of ['space','global','tab','tab']){
-    view.editor.blur();
-    const option=nodes(view.render(cx)).find(n=>n.options.id===`scope-${scope}`);
-    option.handlers.on_click({},cx);
+    const option=nodes(view.render(cx)).find(n=>n.options.id==='scope-'+scope);
+    assert.doesNotThrow(()=>option.handlers.on_click({},cx));
     assert.equal(view.current.scope,scope);
-    assert.equal(view.editing,true,'Context selection must focus the note textarea');
   }
+  const tree=nodes(view.render(cx));
+  assert.equal(tree.some(n=>n.type==='textarea'),false);
+  assert.ok(tree.some(n=>n.type==='editor'));
+  const options=view.editor.editorOptions;
+  assert.equal(options.language,'markdown');assert.equal(options.soft_wrap,true);
+  assert.equal(options.line_numbers,false);assert.equal(options.folding,false);
+  assert.equal(options.font_size,13);
 });
-test('context selection places caret at UTF-16 end of loaded text and clears selection',async t=>{
-  const {view,cx}=await fixture(t);
-  view.editor.set_value('A🐑\nż');await until(()=>!view.book.pending().length);
-  view.selectScope('global',cx);assert.deepEqual(view.editor.lastRange,{start:0,end:0});
-  view.editor.set_value('line 1\nline 2');await until(()=>!view.book.pending().length);
-  view.selectScope('tab',cx);assert.deepEqual(view.editor.lastRange,{start:5,end:5});
-  view.selectScope('global',cx);assert.deepEqual(view.editor.lastRange,{start:13,end:13});
-  view.editor.set_selected_range({start:0,end:4});view.selectScope('global',cx);
-  assert.deepEqual(view.editor.lastRange,{start:13,end:13});
-  view.editor.set_selected_range({start:2,end:2});view.render(cx);
-  assert.deepEqual(view.editor.lastRange,{start:2,end:2});
-});
+
 test('sidebar frame is flat for native pane or tab copies',async t=>{
   const {view,cx}=await fixture(t);
   assert.equal(Object.hasOwn(view.render(cx).options,'border_1'),true);

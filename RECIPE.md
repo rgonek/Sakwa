@@ -18,10 +18,11 @@ reserve border width on every button to avoid movement. Buttons are 26px high.
 All notes and Send to agent follow the selector. At 460px and above they have
 labels; narrower views use Lucide icons and tooltips. The toolbar can wrap.
 
-The plain-text editor fills the remaining height. Use a native Textarea with
-13px text, 12px horizontal and 10px vertical padding, an 8px radius and theme
-border/background. Empty notes show Write a note…. No permanent save indicator
-or footer. Native toasts report errors and delivery results.
+The Markdown source editor fills the remaining height. Use a native Editor with
+13px text, 2px horizontal and 4px vertical padding, an 8px radius and theme
+border/background. Enable Markdown highlighting and soft wrapping; disable line
+numbers and folding. No permanent save indicator or footer. Native toasts report
+errors and delivery results.
 
 All notes replaces the editor with a search field and a scrollable list. Each
 entry shows scope, context label, active/archived/unavailable state, computer,
@@ -60,7 +61,7 @@ the note open with an explanation. No navigation picker.
 
 Herdr app 0.1.12 JavaScript/GPUI runtime; use its installed AGENTS.md, herdr.d.ts
 and gpui-kit.d.ts as the API reference. This is not a Luau mod. No custom layout
-or shipped-mod replacement. main.js controls retained native TextareaState and
+or shipped-mod replacement. main.js controls retained native EditorState and
 InputState; ui.js supplies native Button/Popover components and context selection.
 context.js owns identity and recipient eligibility; presentation.js opens native
 panes/tabs and sends; navigation.js returns pinned views to their source.
@@ -94,6 +95,9 @@ by the real native mod, not a recreated editor.
 
 ## Watch out
 
+- Herdr 0.1.12 EditorState has no focus or selection methods. After changing
+  scope, click the note to resume typing. No placeholder is exposed by this API.
+
 - Send limit: 16,000 UTF-8 bytes. Reject oversized notes intact; never truncate.
 - Concurrent windows append separate revisions. Retain all versions and report
   conflicts. Do not overwrite focused editing text during refresh.
@@ -112,7 +116,7 @@ by the real native mod, not a recreated editor.
 ## Done when
 
 - npm test passes and herdr-app check mods/sakwa reports no errors.
-- Real native editors show the exclusive scope controls and a full-height textarea
+- Real native editors show the exclusive scope controls and a full-height Markdown editor
   in sidebar and flat pane modes, including narrow views.
 - Switching scope restores the correct note; rename/close preserves it in All notes.
 - New tab/Beside/Below pin the original note and preserve the existing terminals.

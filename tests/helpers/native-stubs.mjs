@@ -33,6 +33,13 @@ function input(options={}) {
 }
 export const TextareaState={new:input},InputState={new:input};
 export const Textarea={new:state=>element('textarea').state(state)},Input={new:state=>element('input').state(state)};
+export const EditorState={new:options=>{
+  const state=input(options);
+  delete state.focus;delete state.set_selected_range;
+  state.editorOptions=options;
+  return state;
+}};
+export const Editor={new:state=>element('editor').state(state)};
 export const theme=()=>new Proxy({},{get:()=> '#888888'});
 export const spaces=()=>globalThis.nativeTest.spaces,machines=()=>[{name:null,layout:'ready'}];
 export const agents=()=>globalThis.nativeTest.agents||[],terminals=()=>globalThis.nativeTest.terminals||[];

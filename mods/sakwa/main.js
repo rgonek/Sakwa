@@ -1,5 +1,5 @@
 import { View } from 'gpui-kit';
-import { h_flex, v_flex, TextareaState, Textarea, InputState, Input } from 'gpui-base';
+import { h_flex, v_flex, EditorState, Editor, InputState, Input } from 'gpui-base';
 import { spaces, machines, agents, terminals, focused, panes, theme, props, layout, run,
   hc, shared, setShared, nextCommand, notify } from 'herdr';
 import { contextFor, contextKey, contextStatus, validContext, recipients } from './context.js';
@@ -21,7 +21,10 @@ export default class Sakwa extends View {
     this.current=null;this.baseIds=[];this.loaded=false;this.busy=false;this.panel=null;
     this.journal=createJournal(fileAdapter());
     this.recovery=createRecovery(()=>shared('sakwa.recovery.v1'),value=>setShared('sakwa.recovery.v1',value),revisionId(),id=>this.journal.has(id));
-    this.editor=TextareaState.new({placeholder:'Write a note…',rows:12});
+    const t=theme();
+    this.editor=EditorState.new({language:'markdown',soft_wrap:true,line_numbers:false,folding:false,font_size:13,
+      syntax:{keyword:t.ansi5,string:t.ansi2,comment:t.dim,function:t.ansi4,type:t.ansi3,
+        number:t.ansi1,constant:t.ansi6,operator:t.muted,punctuation:t.accent}});
     this.query=InputState.new({placeholder:'Find a note…'});
     this.query.on('change',(_e,cx)=>cx.notify());
     this.editor.on('focus',()=>{this.editing=true;});
@@ -43,7 +46,7 @@ export default class Sakwa extends View {
     cx.spawn(async cx=>{
       for (;;) {
         const command=await nextCommand(),name=typeof command==='string'?command:command.name;
-        if(name==='focus')this.editor.focus();
+        if(name==='focus')this.focusEditor();
         if(['tab','space','global'].includes(name))this.selectScope(name,cx);
         if(name==='all'){this.panel='all';cx.notify();}
         if(name==='sidebar'&&!this.framed&&focused()?.pane===this.paneId)this.returnSidebar(cx);
@@ -127,8 +130,13 @@ export default class Sakwa extends View {
   }
   selectScope(scope,cx) {
     this.pinned=null;this.scope=scope;this.panel=null;this.message=null;this.sync();
+    this.focusEditor();cx.notify();
+  }
+  focusEditor() {
+    // Herdr 0.1.12 EditorState exposes neither method. Keep compatibility if
+    // later runtimes add them; today the user clicks the note to resume typing.
     const end=this.editor.value().length;
-    this.editor.set_selected_range({start:end,end});this.editor.focus();cx.notify();
+    this.editor.set_selected_range?.({start:end,end});this.editor.focus?.();
   }
   work(cx,action,{automatic=false}={}) {
     cx.spawn(async cx=>{
@@ -261,8 +269,8 @@ export default class Sakwa extends View {
           .children(candidates.map(a=>button(`send-${a.address}`,`${a.name} · ${a.address}`,(_e,cx)=>this.send(a.address,cx),{disabled:this.busy}))),
         {disabled:!ready||this.busy||!this.editor.value().trim(),icon:'send',iconOnly:!labels,tooltip:candidates.length?'Send the full note to an agent':'No live agents in this note context'})))
       .child(v_flex().id('note-editor').flex_1().min_h(0).min_w(0)
-        .when(ready,e=>e.child(Textarea.new(this.editor).size_full().min_h(0).min_w(0)
-          .px(12).py(10).rounded(8).border_1().border_color(t.border).bg(t.background).text_color(t.foreground).text_size(13))));
+        .when(ready,e=>e.child(Editor.new(this.editor).size_full().min_h(0).min_w(0)
+          .px(2).py(4).rounded(8).border_1().border_color(t.border).bg(t.background).text_color(t.foreground).text_size(13))));
     return frame.child(root);
   }
 }
