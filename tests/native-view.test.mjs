@@ -44,6 +44,16 @@ test('context group marks current scope including pinned notes and switches on s
   assert.equal(nodes(view.render(cx)).filter(n=>n.type==='button'&&n.options.selected).length,1);
   assert.equal(tree.some(n=>n.nodes.includes('Sheep / One')),false);
 });
+test('selecting a context immediately focuses its note editor, including the active option',async t=>{
+  const {view,cx}=await fixture(t);
+  for(const scope of ['space','global','tab','tab']){
+    view.editor.blur();
+    const option=nodes(view.render(cx)).find(n=>n.options.id===`scope-${scope}`);
+    option.handlers.on_click({},cx);
+    assert.equal(view.current.scope,scope);
+    assert.equal(view.editing,true,'Context selection must focus the note textarea');
+  }
+});
 test('sidebar frame is flat for native pane or tab copies',async t=>{
   const {view,cx}=await fixture(t);
   assert.equal(Object.hasOwn(view.render(cx).options,'border_1'),true);
