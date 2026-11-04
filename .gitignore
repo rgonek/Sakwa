@@ -2,3 +2,7 @@ node_modules/
 .superpowers/
 *.png
 *.log
+# Herdr generates these files during native checks and loading.
+mods/*/gpui-kit.d.ts
+mods/*/herdr.d.ts
+mods/*/jsconfig.json
