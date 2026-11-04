@@ -2,7 +2,7 @@
 
 A shepherd's satchel for notes in [Herdr](https://herdr.dev).
 One note for a **tab**, one for a **space**, and one **global** note.
-Native GPUI, automatic saving, recoverable history, and a scoped **Send to agent**.
+Native GPUI, automatic saving, recovery snapshots, and a scoped **Send to agent**.
 
 ## Install
 
@@ -40,8 +40,9 @@ splits use Herdr's own pane management, so personal layouts remain in control.
 
 ## Use
 
-- **Tab / Space / Global** selects the single note for that context. The sidebar
-  follows your selected tab or space. Global means this local Herdr installation.
+- **Tab / Space / Global** is a single context selector; the current scope stays
+  highlighted. The sidebar follows your selected tab or space. Global means this
+  local Herdr installation. Hover the selector to see the context's name.
 - Type freely: **Saving…** becomes **Saved** after the atomic file write completes.
   Errors retain the draft, show a warning and retry every three seconds.
 - **Open ▾ → New tab / Beside / Below** opens another editor pinned to the original
@@ -49,12 +50,16 @@ splits use Herdr's own pane management, so personal layouts remain in control.
 - **Send to agent** uses live agents in the note's original tab, space, or all
   contexts for Global. One agent receives directly; several open a picker.
   No agents shows an explanation. The note stays intact after sending.
-- **All notes** searches saved notes, including notes from closed tabs and spaces.
+- **All notes** (the archive icon beside the context selector in every view)
+  searches saved notes, including notes from closed tabs and spaces.
   Contexts are marked **active**, **archived**, or **unavailable** (for a disconnected
   or still-loading machine). Opening an archived note pins it for editing.
-- **History** previews earlier versions. **Copy version** exports the selected text.
-  **Use this version** makes it current and explicitly resolves concurrent heads;
-  all previous versions remain in history.
+
+The context selector uses native `ToggleGroup` / `Toggle` controls with subtle
+theme selection colors. The sidebar has a native rounded frame. Editors opened
+as tabs or split panes are flat and use Herdr's pane frame, without the Sakwa
+header or Open action. The sidebar header's Open icon offers New tab, Beside,
+and Below.
 
 Herdr commands `sakwa.tab`, `sakwa.space`, `sakwa.global`, and `sakwa.all` reach shown
 copies. Native panes can also be opened explicitly:
@@ -88,7 +93,8 @@ Keep an editor open until **Saved** when storage errors occur. Back up the
 **whole Herdr app home** to include both recovery stores and history.
 
 Concurrent windows write separate revisions. Neither overwrites the other's
-text. A warning points to History when multiple current versions exist. A focused
+text. A warning reports when multiple versions exist; recovery snapshots retain
+each full version in the data directory. There is no History control. A focused
 editor keeps the text being edited until you switch context or choose a version.
 Other copies refresh after changes in this window and every ten seconds for
 other windows. This is local storage, including for remote terminal contexts;

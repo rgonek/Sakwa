@@ -1,4 +1,4 @@
-import { View, div, svg } from 'gpui-kit';
+import { View, svg } from 'gpui-kit';
 import { v_flex, TextareaState, Textarea, InputState, Input } from 'gpui-base';
 import { spaces, machines, agents, terminals, focused, panes, theme, props, run,
   hc, shared, setShared, nextCommand } from 'herdr';
@@ -8,10 +8,12 @@ import { createDraftBook } from './drafts.js';
 import { createRecovery } from './recovery.js';
 import { fileAdapter } from './persistence.js';
 import { openNote, sendNote } from './presentation.js';
-import { text, button, popover, row } from './ui.js';
+import { text, button, popover, row, contextGroup } from './ui.js';
 
 export default class Sakwa extends View {
   init(initial,cx) {
+    initial={...initial,...props()};
+    this.framed=initial?.role==='sidebar'||initial?.role!=='pane'&&!initial?.pane&&!initial?.overlay;
     this.scope='tab';this.pinned=validContext(initial?.context)?initial.context:null;
     this.current=null;this.baseIds=[];this.loaded=false;this.busy=false;this.panel=null;
     this.journal=createJournal(fileAdapter());
@@ -26,7 +28,7 @@ export default class Sakwa extends View {
       const value=this.editor.value(),pending=this.book.get(contextKey(this.current));
       if (value === (pending?.text ?? this.displayedText)) return;
       const record=this.book.edit(this.current,value,this.baseIds);
-      this.baseIds=[record.id];this.displayedText=value;this.preview=null;
+      this.baseIds=[record.id];this.displayedText=value;
       this.save(cx);cx.notify();
     });
     try { this.book=createDraftBook(this.journal,localStorage,records=>this.recovery.save(records)); }
@@ -60,7 +62,7 @@ export default class Sakwa extends View {
     const ids=draft?[draft.id]:(note?.heads.map(h=>h.id)||[]);
     const signature=JSON.stringify(ids.slice().sort());
     if(changed || !this.editing && signature!==JSON.stringify(this.baseIds.slice().sort())) {
-      this.setText(draft?.text ?? note?.text ?? '');this.baseIds=ids;this.preview=null;
+      this.setText(draft?.text ?? note?.text ?? '');this.baseIds=ids;
     }
     this.current=next;
   }
@@ -129,13 +131,6 @@ export default class Sakwa extends View {
     if(candidates.length===1)this.send(candidates[0].address,cx);
     else {this.panel='recipients';cx.notify();}
   }
-  restore(revision,cx) {
-    if(!this.current || revision.key!==contextKey(this.current))return;
-    const heads=this.note(revision.key)?.heads||[];
-    const record=this.book.edit(this.current,revision.text,heads.map(h=>h.id),{resolve:true});
-    this.baseIds=[record.id];this.setText(record.text);this.preview=null;this.panel=null;
-    this.save(cx);cx.notify();
-  }
   async close() {
     // Start a fresh flush here; Herdr gives cleanup at most 250 ms.
     if(this.book){try{await this.book.flush();await localStorage.flush();}catch{/* Drafts remain for retry. */}}
@@ -154,16 +149,6 @@ export default class Sakwa extends View {
           .child(button(`note-${n.id}`,`${n.context.scope.toUpperCase()} · ${n.context.label}`,(_e,cx)=>this.chooseNote(n,cx)))
           .child(text(`${contextStatus(n.context,spaces(),machines())} · ${n.context.machine||'this computer'} · ${new Date(n.at).toLocaleString()}`,true))
           .child(text(n.text.replace(/\n/g,' ').slice(0,120)||'(empty note)',true).truncate()))));
-  }
-  history() {
-    if(!this.current)return text('Select a note first.');
-    const note=this.note(contextKey(this.current)),history=this.journal.history(contextKey(this.current));
-    const heads=new Set(note?.heads.map(h=>h.id));
-    return v_flex().gap(6).children(history.map(r=>button(`revision-${r.id}`,
-      `${heads.has(r.id)?'Current · ':''}${new Date(r.at).toLocaleString()} · ${r.text.replace(/\n/g,' ').slice(0,38)||'(empty)'}`,
-      (_e,cx)=>{this.preview=r;this.panel=null;cx.notify();},
-      {tooltip:r.text.slice(0,500)||'(empty note)'})))
-      .when(!history.length,e=>e.child(text('No saved versions yet.',true)));
   }
   render(cx) {
     // Schedule retained input changes outside render, as required by GPUI.
@@ -185,12 +170,12 @@ export default class Sakwa extends View {
     const problem=this.fatal || this.loadError || this.book?.error;
     const root=v_flex().id('sakwa-root').size_full().min_h(0).min_w(0).p(10).gap(8)
       .on_size_change((size,cx)=>{if(this.width!==size.width){this.width=size.width;cx.notify();}})
-      .bg(t.surface).text_color(t.foreground).text_size(12)
-      .child(row().child(svg('mods/sakwa/icon.svg').size(18)).child(text('Sakwa').font_semibold().flex_1())
-        .child(button('all-notes','All notes',(_e,cx)=>{this.panel='all';cx.notify();},{active:this.panel==='all',icon:'archive',iconOnly:this.width<330}))
+      .when(this.framed,e=>e.rounded(10).border_1().border_color(t.border))
+      .overflow_hidden().bg(t.background).text_color(t.foreground).text_size(12)
+      .when(this.framed,e=>e.child(row().child(svg('mods/sakwa/icon.svg').size(18)).child(text('Sakwa').font_semibold().flex_1())
         .child(popover('open-note','Open',this.panel==='open',(open,cx)=>{this.panel=open?'open':null;cx.notify();},()=>
           v_flex().gap(4).children([['tab','New tab','square-arrow-out-up-right'],['right','Beside','columns-2'],['down','Below','rows-2']].map(([place,label,icon])=>
-            button(`open-${place}`,label,(_e,cx)=>this.open(place,cx),{disabled:!ready,icon}))),{icon:'panel-right',iconOnly:true})))
+            button(`open-${place}`,label,(_e,cx)=>this.open(place,cx),{disabled:!ready,icon}))),{icon:'panel-right',iconOnly:true,height:116}))))
       .when(Boolean(problem),e=>e.child(text(`Not saved: ${problem}`).text_color(t.ansi1))
         .child(button('retry','Retry',(_e,cx)=>{this.save(cx);this.refresh(cx);})))
       .when(Boolean(this.journal.errors.length),e=>e.child(text(`${this.journal.errors.length} unreadable history file(s) preserved. See data/sakwa/revisions.`,true)))
@@ -198,22 +183,16 @@ export default class Sakwa extends View {
     if(this.sharedRecoveryError)root.child(text(this.sharedRecoveryError,true));
     if(this.panel==='all')return root.child(this.archive(cx));
     return root
-      .child(row().children(['tab','space','global'].map(scope=>button(`scope-${scope}`,scope[0].toUpperCase()+scope.slice(1),
-        (_e,cx)=>this.selectScope(scope,cx),{active:!this.pinned&&this.scope===scope}))))
-      .child(text(this.current?`${this.pinned?'Pinned · ':''}${this.current.label}`:'Select a tab or choose Global.',true).truncate())
+      .child(row().id('scope-tools')
+        .child(v_flex().flex_1().min_w(0).child(contextGroup(this.current?.scope||this.pinned?.scope||this.scope,(scope,cx)=>this.selectScope(scope,cx),
+          this.current?`${this.pinned?'Pinned · ':''}${this.current.label}`:null)))
+        .child(button('all-notes','All notes',(_e,cx)=>{this.panel='all';cx.notify();},{icon:'archive',iconOnly:true})))
       .when(!this.loaded,e=>e.child(text('Loading notes…',true)))
       .when(ready,e=>e.child(Textarea.new(this.editor).flex_1().size_full().min_h(100).min_w(0)
         .px(12).py(10).rounded(8).border_1().border_color(t.border).bg(t.background).text_color(t.foreground).text_size(13)))
-      .when(Boolean(note?.heads.length>1),e=>e.child(text(`${note.heads.length} concurrent versions preserved. Open History to inspect and choose a version.`).text_color(t.ansi3)))
-      .when(Boolean(this.preview),e=>e.child(v_flex().max_h(240).min_h(0).gap(6)
-        .child(text('History preview (your note stays unchanged)',true))
-        .child(div().flex_1().min_h(40).overflow_y_scrollbar().p(8).bg(t.background).child(this.preview?.text||'(empty note)'))
-        .child(row().child(button('restore','Use this version',(_e,cx)=>this.restore(this.preview,cx)))
-          .child(button('copy-version','Copy version',(_e,cx)=>cx.write_to_clipboard(this.preview.text)))
-          .child(button('close-preview','Close',(_e,cx)=>{this.preview=null;cx.notify();})))))
+      .when(Boolean(note?.heads.length>1),e=>e.child(text(`${note.heads.length} concurrent versions preserved in recovery files.`).text_color(t.ansi3)))
       .child(row().child(text(status==='saved'?'Saved':status==='error'?'Save failed — draft retained':status==='saving'?'Saving…':'',true).flex_1())
         .child(button('copy-note','Copy',(_e,cx)=>cx.write_to_clipboard(this.editor.value()),{disabled:!ready,icon:'copy',iconOnly:true}))
-        .child(popover('history','History',this.panel==='history',(open,cx)=>{this.panel=open?'history':null;cx.notify();},()=>this.history(),{icon:'rotate-ccw-clock',iconOnly:true}))
         .child(popover('send','Send to agent',this.panel==='recipients',(open,cx)=>{
           if(open)this.sendClick(cx);else if(this.panel==='recipients'){this.panel=null;cx.notify();}
         },()=>v_flex().gap(4).when(!candidates.length,e=>e.child(text('No live agents in this note context.',true)))

@@ -30,10 +30,11 @@ keyboard/IME behavior or native popup geometry. No note was sent to a real agent
 - [ ] Type Unicode, paste multiline text, undo/redo, and verify wrapping.
 - [ ] Switch Tab / Space / Global while saving; return and inspect contents.
 - [ ] Close/reopen the app; confirm Saved notes persist.
-- [ ] New tab / Beside / Below: verify pinned context and keyboard focus.
+- [x] New tab / Beside / Below: verify native menu actions, pinned context and flat presentation.
+- [ ] Native keyboard focus/navigation in detached editors.
 - [ ] Close an original tab or space, find its note in All notes and edit it.
 - [ ] Disconnect a remote machine; confirm its notes show unavailable.
-- [ ] Two editors: edit concurrently, inspect History, choose a version.
+- [ ] Two editors: edit concurrently and verify both versions in recovery files.
 - [ ] One live agent sends directly; several agents open the recipient picker.
 - [ ] Failed/oversized sends retain the full note; no automatic retry of sending.
 - [ ] Repeat native checks on macOS and Linux.
@@ -41,3 +42,20 @@ keyboard/IME behavior or native popup geometry. No note was sent to a real agent
 CI is configured for the Node suite on Windows, macOS and Linux. It has not been
 run remotely as part of this local implementation. Native macOS/Linux acceptance
 remains unverified.
+
+## Context selector / panel corrections
+
+- Context uses a native ToggleGroup with exactly one pressed scope, including
+  pinned notes; the separate context label was removed.
+- The sidebar has the same 10px radius and theme border as Files/Changes;
+  native tabs/panes use a flat mod surface.
+- Open's native open-change callback fired, but the scrollable popup had only
+  max-height and collapsed to zero. Definite popup height fixes the menu.
+- History UI removed at the user's request; immutable recovery data is retained.
+- 28 Node tests pass, including selection, frame mode, and popup placement routes.
+- Native mouse smoke verified all three Open actions and the original note's text
+  in the detached views; test views were closed and the original pane restored.
+- Native tab creation exposed that copy props must be read via Herdr `props()`;
+  corrected both runtime and host fixture, with failing/passing pinned-context
+  and flat-mode tests. No custom Sakwa header or Open control in detached views;
+  All notes occupies the same context-row position in both presentations.

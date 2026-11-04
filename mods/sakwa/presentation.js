@@ -2,7 +2,7 @@ import { recipients } from './context.js';
 
 export function openNote(run,place,context,focus,panes) {
   if (!context) throw Error('Select a note first');
-  const props = {context:{...context}};
+  const props = {context:{...context},role:'pane'};
   if (place === 'tab') {
     if (!focus?.space) throw Error('Select a space before opening a tab');
     run('tab.new',{name:`Sakwa · ${context.label}`,space:focus.space,mod:'sakwa',props});
