@@ -1,6 +1,6 @@
-# Sakwa - Notes
+# Notes for tabs, spaces & agents
 
-Keep a note beside your work in Herdr. Sakwa saves as you type, with a note for each tab, each space, and one for everything else.
+Sakwa keeps notes in Herdr: one for each tab, one for each space, and a global note for everything else. Write a checklist, leave yourself the next step, or collect instructions for your coding agent. Notes save as you type in a Markdown source editor. Keep one in the sidebar or open it in a tab or split pane, pinned to its original context while you move around. Search All notes to find writing from closed tabs and spaces. Send a note to a live agent when it is ready; the note stays available afterward. Notes are stored locally and do not sync between computers.
 
 ![Sakwa](preview.png)
 

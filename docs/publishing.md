@@ -1,7 +1,7 @@
 # Publishing Sakwa
 
-The catalog title comes from RECIPE.md's H1: `Sakwa - Notes` (13 characters).
-Its first paragraph is the short catalog description. Keep implementation and
+The catalog title comes from RECIPE.md's H1: `Notes for tabs, spaces & agents` (31 characters).
+Its first paragraph is the catalog preview description. Keep implementation and
 installation details below the preview image.
 
 GitHub About description:
